@@ -1,0 +1,7 @@
+.cursor/
+.venv*/
+*dataset/
+Hand_Model/
+Hand_Model.zip
+*dataset.zip
+*.csv
