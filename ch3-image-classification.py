@@ -1,6 +1,8 @@
 # Binary image classification (cats vs dogs) with a from-scratch CNN.
-# Run once to train and save best_model.keras, then choose option 2 to skip retraining.
+# Interactive menu loop: retrain, load, upload an image to predict, or evaluate test set.
 import os
+import tkinter as tk
+from tkinter import filedialog
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from keras.models import Sequential, load_model
@@ -163,73 +165,161 @@ def load_saved_model():
 # Prediction helpers
 # ---------------------------------------------------------------------------
 def predict_single_image(model, image_path):
-    """Preprocess one image and return 'Dog' or 'Cat'."""
+    """Preprocess one image; return (label, confidence) where confidence is in [0, 1]."""
     # Resize and scale to [0, 1] so inputs match training
     img = load_img(image_path, target_size=IMG_SIZE)
     img_array = img_to_array(img) / 255.0
     # Keras expects a batch: (batch_size, height, width, channels) → (1, H, W, 3)
     img_array = img_array.reshape(1, *IMG_SIZE, 3)
-    # Sigmoid output is a probability; > 0.5 → class 1 (dog), else class 0 (cat)
-    # predict returns shape (1, 1), so index [0][0] for the scalar label
-    result = (model.predict(img_array) > 0.5).astype("int32")
-    label = 'Dog' if result[0][0] == 1 else 'Cat'
-    return label
+    # Sigmoid output is P(dog); > 0.5 → Dog, else Cat
+    dog_prob = float(model.predict(img_array, verbose=0)[0][0])
+    if dog_prob > 0.5:
+        return 'Dog', dog_prob
+    return 'Cat', 1.0 - dog_prob
+
+
+def choose_image_file():
+    """
+    Open a file-picker dialog so the user can upload/select an image on the fly.
+    Falls back to typing a path if the dialog is cancelled or unavailable.
+    """
+    # Hide the empty root Tk window; only show the native file dialog
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+
+    image_path = filedialog.askopenfilename(
+        title='Select a cat or dog image',
+        filetypes=[
+            ('Image files', '*.jpg *.jpeg *.png *.bmp *.gif *.webp'),
+            ('All files', '*.*'),
+        ]
+    )
+    root.destroy()
+
+    # If the user closes the dialog, allow a manual path instead
+    if not image_path:
+        image_path = input('No file selected. Enter image path (or press Enter to cancel): ').strip()
+        image_path = image_path.strip('"').strip("'")
+
+    return image_path or None
+
+
+def predict_uploaded_image(model):
+    """Option 3: pick an image via dialog (or path) and print the prediction."""
+    image_path = choose_image_file()
+    if not image_path:
+        print('Prediction cancelled.')
+        return
+    if not os.path.isfile(image_path):
+        print(f"File not found: {image_path}")
+        return
+
+    try:
+        label, confidence = predict_single_image(model, image_path)
+        print(f"\nFile: {image_path}")
+        print(f"Prediction: {label}  (confidence: {confidence * 100:.1f}%)\n")
+    except Exception as exc:
+        print(f"Could not predict on that image: {exc}")
+
+
+def evaluate_test_set(model):
+    """Run accuracy/loss on the held-out test_set folder."""
+    test_datagen = ImageDataGenerator(rescale=1. / 255)
+    test_set = test_datagen.flow_from_directory(
+        './ch3-dataset/test_set',
+        target_size=IMG_SIZE,       # Must match the size the model was trained on
+        batch_size=32,
+        class_mode='binary',
+        shuffle=False               # Stable order for evaluation / debugging
+    )
+    test_loss, test_accuracy = model.evaluate(test_set)
+    print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
 
 
 def predict_and_display_images(model, image_files):
     """Show a 3x3 grid of images with predicted labels as titles."""
     fig = plt.figure(figsize=(10, 10))
     for i, img_name in enumerate(image_files):
-        # Same preprocessing pipeline as predict_single_image
-        img_ori = load_img(img_name, target_size=IMG_SIZE)
-        img_array = img_to_array(img_ori) / 255.0
-        img_array = img_array.reshape(1, *IMG_SIZE, 3)
-
-        result = (model.predict(img_array) > 0.5).astype("int32")
-        label = 'dog' if result[0][0] == 1 else 'cat'
-
-        # Larger size for display only — prediction still used IMG_SIZE above
+        label, _confidence = predict_single_image(model, img_name)
         img_display = load_img(img_name, target_size=(250, 250))
         plt.subplot(3, 3, i + 1)
         plt.imshow(img_display)
-        plt.title(f'predict: {label}')
+        plt.title(f'predict: {label.lower()}')
     plt.show()
 
 
+def require_model(model):
+    """Return True if a model is loaded; otherwise print guidance and return False."""
+    if model is None:
+        print('No model loaded yet. Choose option 1 (retrain) or 2 (load) first.')
+        return False
+    return True
+
+
+def print_menu(model):
+    status = 'ready' if model is not None else 'not loaded'
+    print('\n' + '=' * 56)
+    print(' Cat vs Dog Classifier')
+    print(f' Model status: {status}')
+    print('=' * 56)
+    print('  1 - Retrain the model (saves to best_model.keras)')
+    print('  2 - Load existing model from best_model.keras')
+    print('  3 - Upload an image and predict cat/dog')
+    print('  4 - Evaluate on the test set')
+    print('  5 - Quit')
+    print('=' * 56)
+
+
 # ---------------------------------------------------------------------------
-# Main: choose retrain vs load, then always evaluate test set + sample predictions
+# Main loop: keep running until the user quits
 # ---------------------------------------------------------------------------
-print("Choose an option:")
-print("  1 - Retrain the model (saves to best_model.keras)")
-print("  2 - Load existing model and run tests/predictions only")
-choice = input("Enter 1 or 2: ").strip()
+model = None
 
-if choice == '1':
-    model = train_model()
-elif choice == '2':
-    model = load_saved_model()
-else:
-    raise SystemExit("Invalid choice. Please run again and enter 1 or 2.")
+# If a checkpoint already exists, offer a faster start by auto-loading it
+if os.path.exists(MODEL_PATH):
+    auto = input(
+        f"Found '{MODEL_PATH}'. Load it now? [Y/n]: "
+    ).strip().lower()
+    if auto in ('', 'y', 'yes'):
+        try:
+            model = load_saved_model()
+            print('Model loaded. You can upload images (option 3) right away.')
+        except Exception as exc:
+            print(f'Could not auto-load model: {exc}')
 
-# Test set: images never used in training/validation (rescale only, no augmentation)
-test_datagen = ImageDataGenerator(rescale=1. / 255)
+while True:
+    print_menu(model)
+    choice = input('Enter 1-5: ').strip()
 
-test_set = test_datagen.flow_from_directory(
-    './ch3-dataset/test_set',
-    target_size=IMG_SIZE,       # Must match the size the model was trained on
-    batch_size=32,
-    class_mode='binary',
-    shuffle=False               # Stable order for evaluation / debugging
-)
+    if choice == '1':
+        try:
+            model = train_model()
+            print('Training complete. Model is ready for predictions.')
+        except Exception as exc:
+            print(f'Training failed: {exc}')
 
-# Final honesty check on the full test folder
-test_loss, test_accuracy = model.evaluate(test_set)
-print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
+    elif choice == '2':
+        try:
+            model = load_saved_model()
+            print('Model loaded. Ready for predictions.')
+        except Exception as exc:
+            print(f'Load failed: {exc}')
 
-# Demo on local photos in the project folder (paths relative to cwd)
-print("Dog Image Prediction:", predict_single_image(model, 'cutie1.jpg'))
-print("Cat Image Prediction:", predict_single_image(model, 'cutie2.jpg'))
+    elif choice == '3':
+        if require_model(model):
+            predict_uploaded_image(model)
 
-# Uncomment to show a 3x3 grid (place 1.jpg ... 8.jpg in the working directory)
-# image_files = [f"{i}.jpg" for i in range(1, 9)]
-# predict_and_display_images(model, image_files)
+    elif choice == '4':
+        if require_model(model):
+            try:
+                evaluate_test_set(model)
+            except Exception as exc:
+                print(f'Test evaluation failed: {exc}')
+
+    elif choice == '5':
+        print('Goodbye!')
+        break
+
+    else:
+        print('Invalid choice. Enter a number from 1 to 5.')

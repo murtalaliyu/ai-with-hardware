@@ -208,7 +208,7 @@
       display: grid;
       gap: 0.5rem;
       margin: 1rem 0;
-      max-width: 36rem;
+      max-width: 40rem;
     }
 
     .flow-step {
@@ -260,19 +260,21 @@
       <div class="brand">AI with Hardware · Chapter 3</div>
       <h1>ch3-image-classification.py</h1>
       <a href="#overview">1. Overview</a>
-      <a href="#requirements">2. Requirements</a>
-      <a href="#dataset">3. Dataset Layout</a>
-      <a href="#constants">4. Constants</a>
-      <a href="#architecture">5. Model Architecture</a>
-      <a href="#data-pipeline">6. Data Pipeline</a>
-      <a href="#training">7. Training</a>
-      <a href="#callbacks">8. Callbacks</a>
-      <a href="#loading">9. Loading a Saved Model</a>
-      <a href="#evaluation">10. Evaluation &amp; Prediction</a>
-      <a href="#api">11. API Reference</a>
-      <a href="#usage">12. Usage</a>
-      <a href="#performance">13. Expected Performance</a>
-      <a href="#limitations">14. Limitations &amp; Notes</a>
+      <a href="#interactive-menu">2. Interactive Menu</a>
+      <a href="#requirements">3. Requirements</a>
+      <a href="#dataset">4. Dataset Layout</a>
+      <a href="#constants">5. Constants</a>
+      <a href="#architecture">6. Model Architecture</a>
+      <a href="#data-pipeline">7. Data Pipeline</a>
+      <a href="#training">8. Training</a>
+      <a href="#callbacks">9. Callbacks</a>
+      <a href="#loading">10. Loading a Saved Model</a>
+      <a href="#upload">11. Upload &amp; Predict</a>
+      <a href="#evaluation">12. Test Evaluation</a>
+      <a href="#api">13. API Reference</a>
+      <a href="#usage">14. Usage</a>
+      <a href="#performance">15. Expected Performance</a>
+      <a href="#limitations">16. Limitations &amp; Notes</a>
     </nav>
 
     <main>
@@ -281,12 +283,14 @@
         <p>
           Detailed reference for <code>ch3-image-classification.py</code>: a from-scratch
           convolutional neural network (CNN) that classifies images as <strong>cat</strong>
-          or <strong>dog</strong>, with optional retraining and inference against a saved checkpoint.
+          or <strong>dog</strong>, with an interactive menu for retraining, loading a
+          checkpoint, uploading images on the fly, and evaluating the test set.
         </p>
         <div class="meta">
           <span class="chip">Binary classification</span>
           <span class="chip">Keras / TensorFlow</span>
-          <span class="chip">From-scratch CNN</span>
+          <span class="chip">Interactive menu loop</span>
+          <span class="chip">On-the-fly upload</span>
           <span class="chip">128×128 RGB</span>
         </div>
       </header>
@@ -296,26 +300,94 @@
         <p>
           The script implements an end-to-end image classification workflow:
           data loading with augmentation, CNN construction and compilation, training with
-          early stopping and checkpointing, test-set evaluation, and single-image prediction.
+          early stopping and checkpointing, test-set evaluation, and single-image prediction
+          via a file-upload dialog.
         </p>
         <p>
           <strong>From-scratch</strong> means the network is defined layer-by-layer and trained
           from randomly initialized weights on the project dataset only. It does
           <em>not</em> use a pretrained backbone (e.g. MobileNet / ResNet / VGG).
         </p>
+        <p>
+          The application runs in an <strong>infinite menu loop</strong> until the user
+          chooses Quit. The in-memory model persists across menu choices, so users do not
+          need to restart the process after each action.
+        </p>
+      </section>
+
+      <section id="interactive-menu">
+        <h2>2. Interactive Menu</h2>
+
+        <h3>Startup</h3>
+        <p>
+          If <code>best_model.keras</code> already exists, the script asks whether to load
+          it immediately (<code>[Y/n]</code>). Accepting lets the user jump straight to
+          uploads (option 3) without retraining.
+        </p>
+
+        <h3>Menu options</h3>
+        <table>
+          <thead>
+            <tr><th>Option</th><th>Action</th><th>Requires model?</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1</strong></td>
+              <td>Retrain from scratch; saves checkpoint to <code>best_model.keras</code></td>
+              <td>No (creates one)</td>
+            </tr>
+            <tr>
+              <td><strong>2</strong></td>
+              <td>Load existing <code>best_model.keras</code> from disk</td>
+              <td>No (loads one)</td>
+            </tr>
+            <tr>
+              <td><strong>3</strong></td>
+              <td>Upload/select an image and predict cat or dog (+ confidence)</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><strong>4</strong></td>
+              <td>Evaluate accuracy on <code>ch3-dataset/test_set</code></td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><strong>5</strong></td>
+              <td>Quit the application</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
 
         <h3>Runtime flow</h3>
         <div class="flow">
-          <div class="flow-step" data-n="1">Prompt user: retrain (1) or load existing model (2)</div>
-          <div class="flow-step" data-n="2">If 1 → build CNN, train, save <code>best_model.keras</code></div>
-          <div class="flow-step" data-n="3">If 2 → load <code>best_model.keras</code> from disk</div>
-          <div class="flow-step" data-n="4">Evaluate on <code>ch3-dataset/test_set</code></div>
-          <div class="flow-step" data-n="5">Run demo predictions on local sample images</div>
+          <div class="flow-step" data-n="1">Optional: auto-load <code>best_model.keras</code> if present</div>
+          <div class="flow-step" data-n="2">Show menu (model status: ready / not loaded)</div>
+          <div class="flow-step" data-n="3">Handle choice 1–5; keep model in memory</div>
+          <div class="flow-step" data-n="4">Loop until user selects Quit (5)</div>
         </div>
+
+        <div class="note">
+          Options <strong>3</strong> and <strong>4</strong> call <code>require_model()</code>.
+          If no model is loaded, the script prints guidance to choose 1 or 2 first, then
+          returns to the menu.
+        </div>
+
+        <pre><code>========================================================
+ Cat vs Dog Classifier
+ Model status: ready
+========================================================
+  1 - Retrain the model (saves to best_model.keras)
+  2 - Load existing model from best_model.keras
+  3 - Upload an image and predict cat/dog
+  4 - Evaluate on the test set
+  5 - Quit
+========================================================
+Enter 1-5:</code></pre>
       </section>
 
       <section id="requirements">
-        <h2>2. Requirements</h2>
+        <h2>3. Requirements</h2>
         <table>
           <thead>
             <tr><th>Item</th><th>Detail</th></tr>
@@ -327,26 +399,26 @@
             </tr>
             <tr>
               <td>Packages</td>
-              <td><code>tensorflow</code> / <code>keras</code>, <code>matplotlib</code></td>
+              <td><code>tensorflow</code> / <code>keras</code>, <code>matplotlib</code>, <code>tkinter</code> (stdlib; used for the file dialog)</td>
             </tr>
             <tr>
               <td>Dataset</td>
-              <td><code>./ch3-dataset/training_set</code> and <code>./ch3-dataset/test_set</code></td>
+              <td><code>./ch3-dataset/training_set</code> and <code>./ch3-dataset/test_set</code> (needed for options 1 and 4)</td>
             </tr>
             <tr>
               <td>Working directory</td>
               <td>Run from the project folder so relative paths resolve correctly</td>
             </tr>
             <tr>
-              <td>Demo images</td>
-              <td><code>cutie1.jpg</code>, <code>cutie2.jpg</code> in the project root (or update paths)</td>
+              <td>GUI / dialog</td>
+              <td>Option 3 uses a native file picker via Tkinter; a typed path is the fallback</td>
             </tr>
           </tbody>
         </table>
       </section>
 
       <section id="dataset">
-        <h2>3. Dataset Layout</h2>
+        <h2>4. Dataset Layout</h2>
         <p>
           Images are loaded via <code>flow_from_directory</code>, which infers class labels from
           subdirectory names. Expected structure:
@@ -361,7 +433,7 @@
         <div class="note">
           <strong>Split note:</strong> Validation images are carved from
           <code>training_set</code> with <code>validation_split=0.2</code>.
-          The official <code>test_set</code> remains a separate honesty check.
+          The official <code>test_set</code> remains a separate honesty check (option 4).
         </div>
         <table>
           <thead>
@@ -372,7 +444,7 @@
               <td>Training (80%)</td>
               <td><code>training_set</code></td>
               <td>Yes</td>
-              <td>Update weights</td>
+              <td>Update weights (option 1)</td>
             </tr>
             <tr>
               <td>Validation (20%)</td>
@@ -384,14 +456,20 @@
               <td>Test</td>
               <td><code>test_set</code></td>
               <td>No</td>
-              <td>Final reported accuracy</td>
+              <td>Final accuracy via option 4</td>
+            </tr>
+            <tr>
+              <td>User upload</td>
+              <td>Any local file (option 3)</td>
+              <td>No</td>
+              <td>Ad-hoc single-image prediction</td>
             </tr>
           </tbody>
         </table>
       </section>
 
       <section id="constants">
-        <h2>4. Constants</h2>
+        <h2>5. Constants</h2>
         <table>
           <thead>
             <tr><th>Name</th><th>Value</th><th>Description</th></tr>
@@ -411,7 +489,7 @@
               <td><code>'best_model.keras'</code></td>
               <td>
                 File written by <code>ModelCheckpoint</code> during training and loaded by
-                option 2.
+                option 2 (and optional startup auto-load).
               </td>
             </tr>
           </tbody>
@@ -419,7 +497,7 @@
       </section>
 
       <section id="architecture">
-        <h2>5. Model Architecture</h2>
+        <h2>6. Model Architecture</h2>
         <p>
           Built in <code>build_model()</code> as a Keras <code>Sequential</code> stack.
           Convolutional blocks learn hierarchical features; a dense head outputs a
@@ -513,11 +591,12 @@
       </section>
 
       <section id="data-pipeline">
-        <h2>6. Data Pipeline</h2>
+        <h2>7. Data Pipeline</h2>
         <p>
-          Training uses <code>ImageDataGenerator</code> with on-the-fly augmentation.
+          Training (option 1) uses <code>ImageDataGenerator</code> with on-the-fly augmentation.
           Validation and test generators apply <strong>rescale only</strong> so metrics
-          reflect unmodified images.
+          reflect unmodified images. User uploads (option 3) are resized and rescaled
+          inside <code>predict_single_image</code> with no augmentation.
         </p>
 
         <h3>Training augmentation parameters</h3>
@@ -548,11 +627,12 @@
       </section>
 
       <section id="training">
-        <h2>7. Training</h2>
+        <h2>8. Training</h2>
         <p>
-          Implemented in <code>train_model()</code> (user option <strong>1</strong>).
+          Implemented in <code>train_model()</code> (menu option <strong>1</strong>).
           It builds a fresh model, prints <code>model.summary()</code>, fits for up to
-          40 epochs, evaluates validation accuracy, and returns the trained model object.
+          40 epochs, evaluates validation accuracy, and returns the trained model object
+          so the menu loop can keep using it.
         </p>
         <pre><code>model.fit(
     training_set,
@@ -562,13 +642,13 @@
 )</code></pre>
         <div class="note">
           <strong>Epochs = 40 is a ceiling.</strong> With EarlyStopping, training often
-          ends earlier once validation loss plateaus. Augmentation and a deeper network
-          typically need more than ~10 epochs to converge well.
+          ends earlier once validation loss plateaus. After training finishes, control
+          returns to the menu — you can immediately use option 3 or 4.
         </div>
       </section>
 
       <section id="callbacks">
-        <h2>8. Callbacks</h2>
+        <h2>9. Callbacks</h2>
         <table>
           <thead>
             <tr><th>Callback</th><th>Key parameters</th><th>Behavior</th></tr>
@@ -622,51 +702,83 @@
       </section>
 
       <section id="loading">
-        <h2>9. Loading a Saved Model</h2>
+        <h2>10. Loading a Saved Model</h2>
         <p>
-          <code>load_saved_model()</code> (user option <strong>2</strong>) checks that
-          <code>MODEL_PATH</code> exists, then calls Keras <code>load_model()</code>.
-          If the file is missing, it raises <code>FileNotFoundError</code> instructing
-          the user to retrain first.
+          <code>load_saved_model()</code> (menu option <strong>2</strong>, and optional
+          startup auto-load) checks that <code>MODEL_PATH</code> exists, then calls Keras
+          <code>load_model()</code>. If the file is missing, it raises
+          <code>FileNotFoundError</code> instructing the user to retrain first.
         </p>
         <p>
-          This path skips dataset loading for training and the expensive <code>fit()</code>
-          loop, jumping straight to test evaluation and predictions.
+          Loading skips the expensive <code>fit()</code> loop. The returned model stays
+          assigned to the loop’s <code>model</code> variable for subsequent predictions
+          and test evaluation.
         </p>
       </section>
 
-      <section id="evaluation">
-        <h2>10. Evaluation &amp; Prediction</h2>
-
-        <h3>Test evaluation</h3>
+      <section id="upload">
+        <h2>11. Upload &amp; Predict (Option 3)</h2>
         <p>
-          After training or loading, the script builds a rescale-only test generator from
-          <code>./ch3-dataset/test_set</code> and runs <code>model.evaluate(test_set)</code>,
-          printing test accuracy.
+          Option 3 lets users classify an arbitrary local image without restarting the app.
         </p>
 
-        <h3>Single-image prediction — <code>predict_single_image</code></h3>
+        <h3>Flow</h3>
         <ol>
-          <li>Load image with <code>load_img(..., target_size=IMG_SIZE)</code></li>
-          <li>Convert to array and divide by 255.0</li>
-          <li>Reshape to <code>(1, 128, 128, 3)</code> (batch of one)</li>
-          <li>Predict; threshold at 0.5 → class 1 = Dog, class 0 = Cat</li>
+          <li><code>require_model(model)</code> — abort with a message if no model is loaded</li>
+          <li>
+            <code>choose_image_file()</code> — open a Tkinter file dialog filtered for
+            common image types (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>,
+            <code>.bmp</code>, <code>.gif</code>, <code>.webp</code>)
+          </li>
+          <li>
+            If the dialog is cancelled, prompt for a typed path (quotes are stripped);
+            empty input cancels the prediction
+          </li>
+          <li>
+            <code>predict_single_image(model, path)</code> — resize to <code>IMG_SIZE</code>,
+            rescale to [0, 1], predict
+          </li>
+          <li>Print label and confidence percentage, then return to the menu</li>
         </ol>
+
+        <h3>Prediction details</h3>
+        <ul>
+          <li>
+            <code>model.predict</code> returns shape <code>(1, 1)</code>; the scalar is
+            treated as P(dog)
+          </li>
+          <li>
+            If P(dog) &gt; 0.5 → label <code>Dog</code> with confidence = P(dog);
+            else → label <code>Cat</code> with confidence = 1 − P(dog)
+          </li>
+          <li>
+            Returns a tuple <code>(label, confidence)</code>; confidence is in [0, 1]
+          </li>
+        </ul>
+
+        <pre><code>File: C:\Users\...\my_pet.jpg
+Prediction: Dog  (confidence: 91.3%)</code></pre>
+      </section>
+
+      <section id="evaluation">
+        <h2>12. Test Evaluation (Option 4)</h2>
         <p>
-          <code>model.predict</code> returns shape <code>(1, 1)</code>, so the label is
-          read as <code>result[0][0]</code>.
+          <code>evaluate_test_set(model)</code> builds a rescale-only generator from
+          <code>./ch3-dataset/test_set</code> and runs <code>model.evaluate</code>,
+          printing test accuracy. This is no longer automatic after every run; it is
+          an explicit menu action so users can train/load once and evaluate when ready.
         </p>
 
-        <h3>Batch visualization — <code>predict_and_display_images</code></h3>
+        <h3>Optional batch visualization</h3>
         <p>
-          Optional helper (commented out in main) that predicts each path in a list and
-          shows a 3×3 matplotlib grid. Display images may be loaded at 250×250 for
-          viewing; the network still receives <code>IMG_SIZE</code> inputs.
+          <code>predict_and_display_images(model, image_files)</code> remains available
+          as a helper for a 3×3 matplotlib grid. It is not wired into the menu by default;
+          call it from a modified script or interactive session if needed.
         </p>
       </section>
 
       <section id="api">
-        <h2>11. API Reference</h2>
+        <h2>13. API Reference</h2>
         <table>
           <thead>
             <tr><th>Function</th><th>Signature</th><th>Returns</th></tr>
@@ -690,7 +802,32 @@
             <tr>
               <td><code>predict_single_image</code></td>
               <td><code>predict_single_image(model, image_path)</code></td>
-              <td><code>'Dog'</code> or <code>'Cat'</code> (string)</td>
+              <td><code>(label, confidence)</code> — e.g. <code>('Dog', 0.913)</code></td>
+            </tr>
+            <tr>
+              <td><code>choose_image_file</code></td>
+              <td><code>choose_image_file()</code></td>
+              <td>File path string, or <code>None</code> if cancelled</td>
+            </tr>
+            <tr>
+              <td><code>predict_uploaded_image</code></td>
+              <td><code>predict_uploaded_image(model)</code></td>
+              <td><code>None</code> (prints result or error)</td>
+            </tr>
+            <tr>
+              <td><code>evaluate_test_set</code></td>
+              <td><code>evaluate_test_set(model)</code></td>
+              <td><code>None</code> (prints test accuracy)</td>
+            </tr>
+            <tr>
+              <td><code>require_model</code></td>
+              <td><code>require_model(model)</code></td>
+              <td><code>True</code> if loaded; else prints help and returns <code>False</code></td>
+            </tr>
+            <tr>
+              <td><code>print_menu</code></td>
+              <td><code>print_menu(model)</code></td>
+              <td><code>None</code> (prints menu + model status)</td>
             </tr>
             <tr>
               <td><code>predict_and_display_images</code></td>
@@ -702,33 +839,34 @@
       </section>
 
       <section id="usage">
-        <h2>12. Usage</h2>
+        <h2>14. Usage</h2>
         <pre><code># From the ai-with-hardware project directory (activate your venv first)
 python .\ch3-image-classification.py
 
-# Prompt:
-#   1 - Retrain the model (saves to best_model.keras)
-#   2 - Load existing model and run tests/predictions only</code></pre>
+# If best_model.keras exists:
+#   Found 'best_model.keras'. Load it now? [Y/n]:
+
+# Then use the menu repeatedly until Quit (5)</code></pre>
 
         <h3>Typical workflows</h3>
         <ul>
           <li>
-            <strong>First run:</strong> choose <code>1</code>, wait for training, confirm
-            <code>best_model.keras</code> is created, review validation and test accuracy.
+            <strong>First run:</strong> choose <code>1</code>, wait for training, then use
+            <code>3</code> to classify photos or <code>4</code> to score the test set.
           </li>
           <li>
-            <strong>Later demos:</strong> choose <code>2</code> to skip training and only
-            evaluate / predict.
+            <strong>Later sessions:</strong> accept auto-load (or choose <code>2</code>),
+            then repeatedly use <code>3</code> to upload images — no restart required.
           </li>
           <li>
-            <strong>Custom photos:</strong> place images in the working directory and pass
-            their filenames to <code>predict_single_image</code> (JPEG or PNG both work).
+            <strong>Custom photos:</strong> option 3’s dialog accepts JPEG, PNG, and other
+            common formats; typed paths also work if the dialog is cancelled.
           </li>
         </ul>
       </section>
 
       <section id="performance">
-        <h2>13. Expected Performance</h2>
+        <h2>15. Expected Performance</h2>
         <p>
           On this cats-vs-dogs setup with the improvements in this script (128×128 inputs,
           augmentation, BatchNorm, longer training with callbacks), validation accuracy
@@ -739,7 +877,7 @@ python .\ch3-image-classification.py
       </section>
 
       <section id="limitations">
-        <h2>14. Limitations &amp; Notes</h2>
+        <h2>16. Limitations &amp; Notes</h2>
         <ul>
           <li>
             Class index mapping (which integer is cat vs dog) depends on folder name
@@ -747,8 +885,8 @@ python .\ch3-image-classification.py
             <code>training_set.class_indices</code> if predictions look inverted.
           </li>
           <li>
-            Demo paths <code>cutie1.jpg</code> / <code>cutie2.jpg</code> must exist or
-            prediction calls will fail.
+            Option 3 needs a display environment for the Tkinter dialog. On headless
+            machines, use the typed-path fallback (or run where a GUI is available).
           </li>
           <li>
             Retraining overwrites <code>best_model.keras</code> only when a better
@@ -759,7 +897,11 @@ python .\ch3-image-classification.py
             (native GPU support varies by TF version).
           </li>
           <li>
-            This document describes the script as of the chapter-3 project implementation;
+            The menu loop catches training/load/eval errors and returns to the menu instead
+            of crashing the process, so one failed action does not force a restart.
+          </li>
+          <li>
+            This document describes the script as of the interactive-menu implementation;
             if the Python file changes, regenerate or update this HTML accordingly.
           </li>
         </ul>
@@ -767,6 +909,7 @@ python .\ch3-image-classification.py
 
       <footer>
         Generated for <code>ch3-image-classification.py</code> · AI with Hardware · Chapter 3
+        · Interactive menu + on-the-fly upload
       </footer>
     </main>
   </div>
