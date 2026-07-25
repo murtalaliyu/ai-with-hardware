@@ -60,4 +60,30 @@ model.compile(optimizer = optimizer, loss = 'binary_crossentropy', metrics = ['a
 # Model summary
 model.summary()
 
+# Callbacks: Early Stopping and Model Checkpoint
+early_stop = EarlyStopping(
+    monitor = 'val_loss',
+    patience = 5,
+    verbose = 1,
+    restore_best_weights = True
+)
+
+checkpoint = ModelCheckpoint(
+    'best_model.keras',
+    monitor = 'val_accuracy',
+    save_best_only = True,
+    verbose = 1
+)
+
+# Train the model with validation set
+history = model.fit(
+    training_set,
+    epochs = 10,
+    validation_data = validation_set,
+    callbacks = [early_stop, checkpoint]
+)
+
+# Evaluate on the validation set
+val_loss, val_accuracy = model.evaluate(validation_set)
+print(f"Validation Accuracy: {val_accuracy * 100:.2f}%")
 

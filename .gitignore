@@ -5,3 +5,4 @@ Hand_Model/
 Hand_Model.zip
 *dataset.zip
 *.csv
+*.keras
