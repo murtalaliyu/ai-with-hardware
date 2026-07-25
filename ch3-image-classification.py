@@ -4,7 +4,7 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense, Dropout, BatchNormalization
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.optimizers import Adam
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 # Larger images keep more detail than 50x50, at the cost of speed/memory
 IMG_SIZE = (128, 128)
@@ -141,39 +141,50 @@ history = model.fit(
 val_loss, val_accuracy = model.evaluate(validation_set)
 print(f"Validation Accuracy: {val_accuracy * 100:.2f}%")
 
-# ---------
-# Test Data Preprocessing
+# ---------------------------------------------------------------------------
+# Test set: unseen images for a final honesty check (rescale only, no aug)
+# ---------------------------------------------------------------------------
 test_datagen = ImageDataGenerator(rescale=1. / 255)
 
 test_set = test_datagen.flow_from_directory(
     './ch3-dataset/test_set',
-    target_size=IMG_SIZE,
+    target_size=IMG_SIZE,       # Must match the size the model was trained on
     batch_size=32,
     class_mode='binary',
-    shuffle=False
+    shuffle=False               # Stable order for evaluation / debugging
 )
 
-# Evaluate on the test data
+# Overall loss and accuracy on the full test folder
 test_loss, test_accuracy = model.evaluate(test_set)
 print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
 
-# Function for Predicting a Single Image
+# ---------------------------------------------------------------------------
+# Single-image prediction
+# ---------------------------------------------------------------------------
 def predict_single_image(model, image_path):
+    # Load and resize; divide by 255 so pixels match training scale [0, 1]
     img = load_img(image_path, target_size=IMG_SIZE)
     img_array = img_to_array(img) / 255.0
+    # Keras expects a batch: (batch_size, height, width, channels) → (1, H, W, 3)
     img_array = img_array.reshape(1, *IMG_SIZE, 3)
+    # Sigmoid output is a probability; > 0.5 → class 1 (dog), else class 0 (cat)
+    # predict returns shape (1, 1), so index [0][0] for the scalar label
     result = (model.predict(img_array) > 0.5).astype("int32")
     label = 'Dog' if result[0][0] == 1 else 'Cat'
     return label
 
-# Predict Single Images (Dog and Cat)
+# Demo on local photos in the project folder (paths relative to cwd)
 print("Dog Image Prediction:", predict_single_image(model, 'cutie1.jpg'))
 print("Cat Image Prediction:", predict_single_image(model, 'cutie2.jpg'))
 
-# Batch Prediction and Visualization for Multiple Images
+# ---------------------------------------------------------------------------
+# Batch prediction + grid visualization
+# ---------------------------------------------------------------------------
 def predict_and_display_images(model, image_files):
+    # 3x3 grid of up to 9 images with predicted labels as titles
     fig = plt.figure(figsize=(10, 10))
     for i, img_name in enumerate(image_files):
+        # Same preprocessing pipeline as predict_single_image
         img_ori = load_img(img_name, target_size=IMG_SIZE)
         img_array = img_to_array(img_ori) / 255.0
         img_array = img_array.reshape(1, *IMG_SIZE, 3)
@@ -181,12 +192,13 @@ def predict_and_display_images(model, image_files):
         result = (model.predict(img_array) > 0.5).astype("int32")
         label = 'dog' if result[0][0] == 1 else 'cat'
 
+        # Larger size for display only — prediction still used IMG_SIZE above
         img_display = load_img(img_name, target_size=(250, 250))
-        plt.subplot(3, 3, i+1)
+        plt.subplot(3, 3, i + 1)
         plt.imshow(img_display)
         plt.title(f'predict: {label}')
     plt.show()
 
-# Predict and display images 1.jpg to 9.jpg
-# images_files = [f"{i}.img" for i in range(1, 9)]
-# predict_and_display_images(model, images_files)
+# Uncomment to show a 3x3 grid (place 1.jpg ... 8.jpg in the working directory)
+# image_files = [f"{i}.jpg" for i in range(1, 9)]
+# predict_and_display_images(model, image_files)
