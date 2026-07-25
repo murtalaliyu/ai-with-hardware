@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Technical Documentation — ch3-image-classification.py</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --surface: #fffcf7;
+      --ink: #1a1f24;
+      --muted: #5c6570;
+      --line: #d8d2c6;
+      --accent: #0b6e4f;
+      --accent-soft: #e3f2ec;
+      --code-bg: #1e2430;
+      --code-ink: #e8ecf1;
+      --warn: #8a4b12;
+      --warn-bg: #fff3e6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at top left, #efe8dc 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.65;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 2rem 1.25rem;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 252, 247, 0.92);
+      backdrop-filter: blur(6px);
+    }
+
+    nav .brand {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    nav h1 {
+      font-size: 1.05rem;
+      margin: 0 0 1.5rem;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    nav a {
+      display: block;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.35rem 0;
+    }
+
+    nav a:hover { color: var(--accent); }
+
+    main {
+      padding: 2.5rem 2.75rem 4rem;
+    }
+
+    header.doc-header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    header.doc-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+    }
+
+    header.doc-header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 62ch;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .chip {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #b7d9cb;
+    }
+
+    section {
+      margin-bottom: 2.75rem;
+      scroll-margin-top: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      margin: 0 0 0.85rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      margin: 1.5rem 0 0.6rem;
+      color: var(--ink);
+    }
+
+    p, li { max-width: 72ch; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #efe9de;
+      font-weight: 600;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    code, .mono {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 0.88em;
+    }
+
+    p code, li code, td code {
+      background: #ece7dd;
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 1rem 1.15rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn);
+      padding: 0.85rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      color: #4a3218;
+      max-width: 72ch;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin: 1rem 0;
+      max-width: 72ch;
+    }
+
+    .flow {
+      display: grid;
+      gap: 0.5rem;
+      margin: 1rem 0;
+      max-width: 36rem;
+    }
+
+    .flow-step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      position: relative;
+    }
+
+    .flow-step::before {
+      content: attr(data-n);
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      line-height: 1.5rem;
+      text-align: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.6rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      nav {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 1.5rem 1.25rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <div class="brand">AI with Hardware · Chapter 3</div>
+      <h1>ch3-image-classification.py</h1>
+      <a href="#overview">1. Overview</a>
+      <a href="#requirements">2. Requirements</a>
+      <a href="#dataset">3. Dataset Layout</a>
+      <a href="#constants">4. Constants</a>
+      <a href="#architecture">5. Model Architecture</a>
+      <a href="#data-pipeline">6. Data Pipeline</a>
+      <a href="#training">7. Training</a>
+      <a href="#callbacks">8. Callbacks</a>
+      <a href="#loading">9. Loading a Saved Model</a>
+      <a href="#evaluation">10. Evaluation &amp; Prediction</a>
+      <a href="#api">11. API Reference</a>
+      <a href="#usage">12. Usage</a>
+      <a href="#performance">13. Expected Performance</a>
+      <a href="#limitations">14. Limitations &amp; Notes</a>
+    </nav>
+
+    <main>
+      <header class="doc-header">
+        <h1>Technical Documentation</h1>
+        <p>
+          Detailed reference for <code>ch3-image-classification.py</code>: a from-scratch
+          convolutional neural network (CNN) that classifies images as <strong>cat</strong>
+          or <strong>dog</strong>, with optional retraining and inference against a saved checkpoint.
+        </p>
+        <div class="meta">
+          <span class="chip">Binary classification</span>
+          <span class="chip">Keras / TensorFlow</span>
+          <span class="chip">From-scratch CNN</span>
+          <span class="chip">128×128 RGB</span>
+        </div>
+      </header>
+
+      <section id="overview">
+        <h2>1. Overview</h2>
+        <p>
+          The script implements an end-to-end image classification workflow:
+          data loading with augmentation, CNN construction and compilation, training with
+          early stopping and checkpointing, test-set evaluation, and single-image prediction.
+        </p>
+        <p>
+          <strong>From-scratch</strong> means the network is defined layer-by-layer and trained
+          from randomly initialized weights on the project dataset only. It does
+          <em>not</em> use a pretrained backbone (e.g. MobileNet / ResNet / VGG).
+        </p>
+
+        <h3>Runtime flow</h3>
+        <div class="flow">
+          <div class="flow-step" data-n="1">Prompt user: retrain (1) or load existing model (2)</div>
+          <div class="flow-step" data-n="2">If 1 → build CNN, train, save <code>best_model.keras</code></div>
+          <div class="flow-step" data-n="3">If 2 → load <code>best_model.keras</code> from disk</div>
+          <div class="flow-step" data-n="4">Evaluate on <code>ch3-dataset/test_set</code></div>
+          <div class="flow-step" data-n="5">Run demo predictions on local sample images</div>
+        </div>
+      </section>
+
+      <section id="requirements">
+        <h2>2. Requirements</h2>
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Detail</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Python</td>
+              <td>3.10–3.13 recommended (TensorFlow does not support 3.14 as of this project)</td>
+            </tr>
+            <tr>
+              <td>Packages</td>
+              <td><code>tensorflow</code> / <code>keras</code>, <code>matplotlib</code></td>
+            </tr>
+            <tr>
+              <td>Dataset</td>
+              <td><code>./ch3-dataset/training_set</code> and <code>./ch3-dataset/test_set</code></td>
+            </tr>
+            <tr>
+              <td>Working directory</td>
+              <td>Run from the project folder so relative paths resolve correctly</td>
+            </tr>
+            <tr>
+              <td>Demo images</td>
+              <td><code>cutie1.jpg</code>, <code>cutie2.jpg</code> in the project root (or update paths)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="dataset">
+        <h2>3. Dataset Layout</h2>
+        <p>
+          Images are loaded via <code>flow_from_directory</code>, which infers class labels from
+          subdirectory names. Expected structure:
+        </p>
+        <pre><code>ch3-dataset/
+├── training_set/
+│   ├── cats/     # used for train (80%) + validation (20%)
+│   └── dogs/
+└── test_set/
+    ├── cats/     # final evaluation only (never used in training)
+    └── dogs/</code></pre>
+        <div class="note">
+          <strong>Split note:</strong> Validation images are carved from
+          <code>training_set</code> with <code>validation_split=0.2</code>.
+          The official <code>test_set</code> remains a separate honesty check.
+        </div>
+        <table>
+          <thead>
+            <tr><th>Split</th><th>Source</th><th>Augmentation</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Training (80%)</td>
+              <td><code>training_set</code></td>
+              <td>Yes</td>
+              <td>Update weights</td>
+            </tr>
+            <tr>
+              <td>Validation (20%)</td>
+              <td><code>training_set</code></td>
+              <td>No</td>
+              <td>Early stop, LR schedule, checkpoint</td>
+            </tr>
+            <tr>
+              <td>Test</td>
+              <td><code>test_set</code></td>
+              <td>No</td>
+              <td>Final reported accuracy</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="constants">
+        <h2>4. Constants</h2>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Value</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>IMG_SIZE</code></td>
+              <td><code>(128, 128)</code></td>
+              <td>
+                Height and width of every image fed to the network. Larger than a typical
+                tutorial 50×50 size to preserve more visual detail; increases memory and
+                training time.
+              </td>
+            </tr>
+            <tr>
+              <td><code>MODEL_PATH</code></td>
+              <td><code>'best_model.keras'</code></td>
+              <td>
+                File written by <code>ModelCheckpoint</code> during training and loaded by
+                option 2.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="architecture">
+        <h2>5. Model Architecture</h2>
+        <p>
+          Built in <code>build_model()</code> as a Keras <code>Sequential</code> stack.
+          Convolutional blocks learn hierarchical features; a dense head outputs a
+          single sigmoid probability for binary classification.
+        </p>
+
+        <h3>Layer stack</h3>
+        <table>
+          <thead>
+            <tr><th>Stage</th><th>Layers</th><th>Role</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Block 1</td>
+              <td><code>Conv2D(32)</code> → <code>BatchNorm</code> → <code>MaxPool2D</code></td>
+              <td>Low-level features (edges, color, texture)</td>
+            </tr>
+            <tr>
+              <td>Block 2</td>
+              <td><code>Conv2D(64)</code> → <code>BatchNorm</code> → <code>MaxPool2D</code> → <code>Dropout(0.25)</code></td>
+              <td>Mid-level patterns</td>
+            </tr>
+            <tr>
+              <td>Block 3</td>
+              <td><code>Conv2D(128)</code> → <code>BatchNorm</code> → <code>MaxPool2D</code> → <code>Dropout(0.25)</code></td>
+              <td>Higher-level parts (ears, eyes, legs)</td>
+            </tr>
+            <tr>
+              <td>Block 4</td>
+              <td><code>Conv2D(256)</code> → <code>BatchNorm</code> → <code>MaxPool2D</code> → <code>Dropout(0.25)</code></td>
+              <td>Richest feature maps before flattening</td>
+            </tr>
+            <tr>
+              <td>Head</td>
+              <td><code>Flatten</code> → <code>Dense(256)</code> → <code>BatchNorm</code> → <code>Dropout(0.5)</code> → <code>Dense(1, sigmoid)</code></td>
+              <td>Map features to P(dog) ∈ [0, 1]</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Design choices</h3>
+        <ul>
+          <li>
+            <strong>Filter growth (32→64→128→256):</strong> as pooling reduces spatial size,
+            more channels capture richer combinations of features.
+          </li>
+          <li>
+            <strong><code>padding='same'</code>:</strong> preserves spatial dimensions through
+            each convolution before pooling.
+          </li>
+          <li>
+            <strong>BatchNormalization:</strong> normalizes layer activations within a batch
+            for more stable, often faster training.
+          </li>
+          <li>
+            <strong>Dropout:</strong> randomly zeroes units during training to reduce
+            overfitting (0.25 after mid/late conv blocks; 0.5 after the dense layer).
+          </li>
+          <li>
+            <strong>Sigmoid + binary crossentropy:</strong> standard setup for two-class
+            problems with a single output unit.
+          </li>
+        </ul>
+
+        <h3>Compilation</h3>
+        <table>
+          <thead>
+            <tr><th>Setting</th><th>Value</th><th>Rationale</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Optimizer</td>
+              <td>Adam, <code>learning_rate=0.0005</code></td>
+              <td>
+                Adaptive per-parameter steps; slightly below Adam’s default 0.001 for
+                stability with BatchNorm and augmentation.
+              </td>
+            </tr>
+            <tr>
+              <td>Loss</td>
+              <td><code>binary_crossentropy</code></td>
+              <td>Matches sigmoid binary output</td>
+            </tr>
+            <tr>
+              <td>Metric</td>
+              <td><code>accuracy</code></td>
+              <td>Primary reported performance measure</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="data-pipeline">
+        <h2>6. Data Pipeline</h2>
+        <p>
+          Training uses <code>ImageDataGenerator</code> with on-the-fly augmentation.
+          Validation and test generators apply <strong>rescale only</strong> so metrics
+          reflect unmodified images.
+        </p>
+
+        <h3>Training augmentation parameters</h3>
+        <table>
+          <thead>
+            <tr><th>Parameter</th><th>Value</th><th>Effect</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>rescale</code></td><td><code>1/255</code></td><td>Map pixel values from [0, 255] → [0, 1]</td></tr>
+            <tr><td><code>validation_split</code></td><td><code>0.2</code></td><td>Reserve 20% of <code>training_set</code> for validation</td></tr>
+            <tr><td><code>rotation_range</code></td><td><code>20</code></td><td>Random rotation up to ±20°</td></tr>
+            <tr><td><code>width_shift_range</code></td><td><code>0.15</code></td><td>Horizontal shift up to 15% of width</td></tr>
+            <tr><td><code>height_shift_range</code></td><td><code>0.15</code></td><td>Vertical shift up to 15% of height</td></tr>
+            <tr><td><code>shear_range</code></td><td><code>0.15</code></td><td>Shear (slant) transform</td></tr>
+            <tr><td><code>zoom_range</code></td><td><code>0.2</code></td><td>Zoom in/out up to 20%</td></tr>
+            <tr><td><code>horizontal_flip</code></td><td><code>True</code></td><td>Random left↔right flip (valid for cats/dogs)</td></tr>
+            <tr><td><code>fill_mode</code></td><td><code>'nearest'</code></td><td>Fill empty pixels after warp with nearest neighbor</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Batch / label settings</h3>
+        <ul>
+          <li><code>target_size=IMG_SIZE</code> — must match model <code>input_shape</code></li>
+          <li><code>batch_size=32</code></li>
+          <li><code>class_mode='binary'</code> — labels are 0/1 for a single sigmoid unit</li>
+          <li><code>shuffle=False</code> on validation/test for stable evaluation order</li>
+        </ul>
+      </section>
+
+      <section id="training">
+        <h2>7. Training</h2>
+        <p>
+          Implemented in <code>train_model()</code> (user option <strong>1</strong>).
+          It builds a fresh model, prints <code>model.summary()</code>, fits for up to
+          40 epochs, evaluates validation accuracy, and returns the trained model object.
+        </p>
+        <pre><code>model.fit(
+    training_set,
+    epochs=40,
+    validation_data=validation_set,
+    callbacks=[early_stop, checkpoint, reduce_lr]
+)</code></pre>
+        <div class="note">
+          <strong>Epochs = 40 is a ceiling.</strong> With EarlyStopping, training often
+          ends earlier once validation loss plateaus. Augmentation and a deeper network
+          typically need more than ~10 epochs to converge well.
+        </div>
+      </section>
+
+      <section id="callbacks">
+        <h2>8. Callbacks</h2>
+        <table>
+          <thead>
+            <tr><th>Callback</th><th>Key parameters</th><th>Behavior</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>EarlyStopping</code></td>
+              <td>
+                <code>monitor='val_loss'</code>,
+                <code>patience=8</code>,
+                <code>restore_best_weights=True</code>
+              </td>
+              <td>
+                Stops when validation loss stops improving for 8 epochs; restores weights
+                from the best epoch (not the last).
+              </td>
+            </tr>
+            <tr>
+              <td><code>ModelCheckpoint</code></td>
+              <td>
+                <code>filepath=MODEL_PATH</code>,
+                <code>monitor='val_accuracy'</code>,
+                <code>save_best_only=True</code>
+              </td>
+              <td>
+                Writes <code>best_model.keras</code> whenever validation accuracy improves.
+              </td>
+            </tr>
+            <tr>
+              <td><code>ReduceLROnPlateau</code></td>
+              <td>
+                <code>monitor='val_loss'</code>,
+                <code>factor=0.5</code>,
+                <code>patience=3</code>,
+                <code>min_lr=1e-6</code>
+              </td>
+              <td>
+                Halves the learning rate when validation loss stalls, allowing finer
+                updates before EarlyStopping ends training.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card">
+          <strong>Note on monitors:</strong> EarlyStopping / ReduceLROnPlateau watch
+          <code>val_loss</code>; ModelCheckpoint watches <code>val_accuracy</code>.
+          These usually move together but are not identical—the checkpoint on disk is
+          the best accuracy snapshot, while in-memory weights after EarlyStopping are
+          restored by best loss.
+        </div>
+      </section>
+
+      <section id="loading">
+        <h2>9. Loading a Saved Model</h2>
+        <p>
+          <code>load_saved_model()</code> (user option <strong>2</strong>) checks that
+          <code>MODEL_PATH</code> exists, then calls Keras <code>load_model()</code>.
+          If the file is missing, it raises <code>FileNotFoundError</code> instructing
+          the user to retrain first.
+        </p>
+        <p>
+          This path skips dataset loading for training and the expensive <code>fit()</code>
+          loop, jumping straight to test evaluation and predictions.
+        </p>
+      </section>
+
+      <section id="evaluation">
+        <h2>10. Evaluation &amp; Prediction</h2>
+
+        <h3>Test evaluation</h3>
+        <p>
+          After training or loading, the script builds a rescale-only test generator from
+          <code>./ch3-dataset/test_set</code> and runs <code>model.evaluate(test_set)</code>,
+          printing test accuracy.
+        </p>
+
+        <h3>Single-image prediction — <code>predict_single_image</code></h3>
+        <ol>
+          <li>Load image with <code>load_img(..., target_size=IMG_SIZE)</code></li>
+          <li>Convert to array and divide by 255.0</li>
+          <li>Reshape to <code>(1, 128, 128, 3)</code> (batch of one)</li>
+          <li>Predict; threshold at 0.5 → class 1 = Dog, class 0 = Cat</li>
+        </ol>
+        <p>
+          <code>model.predict</code> returns shape <code>(1, 1)</code>, so the label is
+          read as <code>result[0][0]</code>.
+        </p>
+
+        <h3>Batch visualization — <code>predict_and_display_images</code></h3>
+        <p>
+          Optional helper (commented out in main) that predicts each path in a list and
+          shows a 3×3 matplotlib grid. Display images may be loaded at 250×250 for
+          viewing; the network still receives <code>IMG_SIZE</code> inputs.
+        </p>
+      </section>
+
+      <section id="api">
+        <h2>11. API Reference</h2>
+        <table>
+          <thead>
+            <tr><th>Function</th><th>Signature</th><th>Returns</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>build_model</code></td>
+              <td><code>build_model()</code></td>
+              <td>Compiled Keras <code>Sequential</code> model</td>
+            </tr>
+            <tr>
+              <td><code>train_model</code></td>
+              <td><code>train_model()</code></td>
+              <td>Trained model (also writes <code>best_model.keras</code>)</td>
+            </tr>
+            <tr>
+              <td><code>load_saved_model</code></td>
+              <td><code>load_saved_model()</code></td>
+              <td>Loaded Keras model, or raises <code>FileNotFoundError</code></td>
+            </tr>
+            <tr>
+              <td><code>predict_single_image</code></td>
+              <td><code>predict_single_image(model, image_path)</code></td>
+              <td><code>'Dog'</code> or <code>'Cat'</code> (string)</td>
+            </tr>
+            <tr>
+              <td><code>predict_and_display_images</code></td>
+              <td><code>predict_and_display_images(model, image_files)</code></td>
+              <td><code>None</code> (opens a matplotlib figure)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="usage">
+        <h2>12. Usage</h2>
+        <pre><code># From the ai-with-hardware project directory (activate your venv first)
+python .\ch3-image-classification.py
+
+# Prompt:
+#   1 - Retrain the model (saves to best_model.keras)
+#   2 - Load existing model and run tests/predictions only</code></pre>
+
+        <h3>Typical workflows</h3>
+        <ul>
+          <li>
+            <strong>First run:</strong> choose <code>1</code>, wait for training, confirm
+            <code>best_model.keras</code> is created, review validation and test accuracy.
+          </li>
+          <li>
+            <strong>Later demos:</strong> choose <code>2</code> to skip training and only
+            evaluate / predict.
+          </li>
+          <li>
+            <strong>Custom photos:</strong> place images in the working directory and pass
+            their filenames to <code>predict_single_image</code> (JPEG or PNG both work).
+          </li>
+        </ul>
+      </section>
+
+      <section id="performance">
+        <h2>13. Expected Performance</h2>
+        <p>
+          On this cats-vs-dogs setup with the improvements in this script (128×128 inputs,
+          augmentation, BatchNorm, longer training with callbacks), validation accuracy
+          around the high 80s (e.g. ~89%) is a strong result for a from-scratch CNN.
+          Chance baseline for balanced binary classes is ~50%. Transfer learning with a
+          pretrained backbone typically reaches the mid–high 90s.
+        </p>
+      </section>
+
+      <section id="limitations">
+        <h2>14. Limitations &amp; Notes</h2>
+        <ul>
+          <li>
+            Class index mapping (which integer is cat vs dog) depends on folder name
+            sort order from <code>flow_from_directory</code>. Confirm with
+            <code>training_set.class_indices</code> if predictions look inverted.
+          </li>
+          <li>
+            Demo paths <code>cutie1.jpg</code> / <code>cutie2.jpg</code> must exist or
+            prediction calls will fail.
+          </li>
+          <li>
+            Retraining overwrites <code>best_model.keras</code> only when a better
+            <code>val_accuracy</code> is reached during that run’s checkpoints.
+          </li>
+          <li>
+            GPU is optional; CPU training is slower but supported for TensorFlow on Windows
+            (native GPU support varies by TF version).
+          </li>
+          <li>
+            This document describes the script as of the chapter-3 project implementation;
+            if the Python file changes, regenerate or update this HTML accordingly.
+          </li>
+        </ul>
+      </section>
+
+      <footer>
+        Generated for <code>ch3-image-classification.py</code> · AI with Hardware · Chapter 3
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
