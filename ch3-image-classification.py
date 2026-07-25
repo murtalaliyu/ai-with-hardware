@@ -1,9 +1,10 @@
 # Binary image classification (cats vs dogs) with a from-scratch CNN
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense, Dropout, BatchNormalization
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.optimizers import Adam
+import matplotlib as plt
 
 # Larger images keep more detail than 50x50, at the cost of speed/memory
 IMG_SIZE = (128, 128)
@@ -139,3 +140,53 @@ history = model.fit(
 # Final score on the held-out validation images
 val_loss, val_accuracy = model.evaluate(validation_set)
 print(f"Validation Accuracy: {val_accuracy * 100:.2f}%")
+
+# ---------
+# Test Data Preprocessing
+test_datagen = ImageDataGenerator(rescale=1. / 255)
+
+test_set = test_datagen.flow_from_directory(
+    './ch3-dataset/test_set',
+    target_size=IMG_SIZE,
+    batch_size=32,
+    class_mode='binary',
+    shuffle=False
+)
+
+# Evaluate on the test data
+test_loss, test_accuracy = model.evaluate(test_set)
+print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
+
+# Function for Predicting a Single Image
+def predict_single_image(model, image_path):
+    img = load_img(image_path, target_size=IMG_SIZE)
+    img_array = img_to_array(img) / 255.0
+    img_array = img_array.reshape(1, *IMG_SIZE, 3)
+    result = (model.predict(img_array) > 0.5).astype("int32")
+    label = 'Dog' if result[0][0] == 1 else 'Cat'
+    return label
+
+# Predict Single Images (Dog and Cat)
+print("Dog Image Prediction:", predict_single_image(model, 'cutie1.jpg'))
+print("Cat Image Prediction:", predict_single_image(model, 'cutie2.jpg'))
+
+# Batch Prediction and Visualization for Multiple Images
+def predict_and_display_images(model, image_files):
+    fig = plt.figure(figsize=(10, 10))
+    for i, img_name in enumerate(image_files):
+        img_ori = load_img(img_name, target_size=IMG_SIZE)
+        img_array = img_to_array(img_ori) / 255.0
+        img_array = img_array.reshape(1, *IMG_SIZE, 3)
+
+        result = (model.predict(img_array) > 0.5).astype("int32")
+        label = 'dog' if result[0][0] == 1 else 'cat'
+
+        img_display = load_img(img_name, target_size=(250, 250))
+        plt.subplot(3, 3, i+1)
+        plt.imshow(img_display)
+        plt.title(f'predict: {label}')
+    plt.show()
+
+# Predict and display images 1.jpg to 9.jpg
+# images_files = [f"{i}.img" for i in range(1, 9)]
+# predict_and_display_images(model, images_files)
