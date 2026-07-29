@@ -65,7 +65,8 @@ def count_fingers(hand_landmarks):
     return sum(finger_states), finger_states
 
 def create_info_panel(finger_info, image_width, panel_height=50):
-    panel = np.zeros(panel_height, image_width, dtype=np.uint8)
+    # Shape must be a tuple; 3 channels so it stacks with the BGR camera frame
+    panel = np.zeros((panel_height, image_width, 3), dtype=np.uint8)
 
     # Create a string to store the number of hands and the number of fingers for each hand
     info_text = f"Hands: {len(finger_info)} | "
@@ -124,7 +125,7 @@ with mp_hands.Hands(
                     image,
                     hand_landmarks,
                     mp_hands.HAND_CONNECTIONS,
-                    mp_drawing_styles.get_default_hand_landmarks_styles(),
+                    mp_drawing_styles.get_default_hand_landmarks_style(),
                     mp.drawing_styles.get_default_hand_connections_style()
                 )
 
@@ -161,6 +162,7 @@ with mp_hands.Hands(
         # Vertically stack the main image and information panel
         display_image = np.vstack((image, info_panel))
 
+        # Display the result in a window
         cv2.imshow('MediaPipe Hands', display_image)
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
