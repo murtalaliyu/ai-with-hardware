@@ -1303,12 +1303,141 @@ if cv2.waitKey(5) &amp; 0xFF == ord('q'):
           <li>COM port free — close Thonny’s serial monitor and any leftover Python processes before running</li>
         </ul>
 
-        <h3>Run</h3>
-        <pre><code>python ch4-finger-detection-pc.py</code></pre>
+        <h3>Run — step-by-step startup</h3>
         <p>
-          Press <code>q</code> in the OpenCV window, or Ctrl+C in the terminal, to quit.
-          Either path runs <code>finally</code> so <code>COM4</code> is released.
+          The STEPico firmware and the PC script cannot share <code>COM4</code> at the
+          same time. Flash/start the board in Thonny first, then fully release the
+          port before launching the PC vision app.
         </p>
+
+        <h4>A. Hardware &amp; software prerequisites</h4>
+        <ol>
+          <li>USB-connect the STEPico (Raspberry Pi Pico / compatible) to the PC.</li>
+          <li>
+            Confirm Windows lists it as a serial device — typically
+            <strong>Board CDC @ COM4</strong> (Device Manager → Ports). If the number
+            differs, update <code>port = "COM4"</code> in
+            <code>ch4-finger-detection-pc.py</code> to match.
+          </li>
+          <li>
+            MicroPython must already be installed on the board (Thonny can install it
+            the first time you select the Pico interpreter).
+          </li>
+          <li>
+            On the PC, have Python 3 plus
+            <code>opencv-python</code>, <code>mediapipe</code>, <code>numpy</code>, and
+            <code>pyserial</code> available.
+          </li>
+          <li>Plug in / enable the webcam you intend to use (default index <code>0</code>).</li>
+          <li>
+            End any leftover <code>python.exe</code> / previous
+            <code>ch4-finger-detection-pc.py</code> runs so they are not still holding
+            the camera or COM port.
+          </li>
+        </ol>
+
+        <h4>B. Load &amp; start firmware on the STEPico (Thonny)</h4>
+        <ol>
+          <li>Open <strong>Thonny</strong>.</li>
+          <li>
+            Open the companion file:
+            <code>ai-with-hardware/ch4-finger-detection-stepico.py</code>
+            (File → Open…).
+          </li>
+          <li>
+            Set the interpreter:
+            <strong>MicroPython (Raspberry Pi Pico)</strong> —
+            board CDC @ <strong>COM4</strong>
+            (bottom-right interpreter menu, or Tools → Options → Interpreter).
+          </li>
+          <li>
+            Click <strong>Run</strong> (green ▶). The infinite
+            <code>while True</code> loop starts and the board begins reading serial
+            characters from USB stdin to drive the LED banks.
+          </li>
+          <li>
+            Optional check: with the script running in Thonny you can type characters
+            in the shell to smoke-test LEDs, but you do not need to for the full demo.
+          </li>
+          <li>
+            <strong>Stop</strong> the program if needed (Stop/Restart backend), then
+            <strong>close Thonny completely</strong> (or otherwise disconnect so nothing
+            in Thonny still owns COM4). Leaving Thonny open with an active Shell/REPL
+            will cause
+            <code>SerialException</code> / “Access is denied” when the PC script opens
+            the same port.
+          </li>
+        </ol>
+        <div class="note">
+          Clicking Run in Thonny executes the script in RAM for that session. After you
+          close Thonny, a soft reboot may stop the loop unless the file was also saved
+          to the board as <code>main.py</code>. For a reliable demo: either keep the
+          firmware saved on-device as <code>main.py</code> so it auto-starts on power-up,
+          or re-open Thonny, Run once, then close Thonny carefully without resetting the
+          board. If LEDs never respond, re-run the STEPico script in Thonny, close
+          Thonny again, and restart the PC app.
+        </div>
+
+        <h4>C. Start the PC vision + serial client</h4>
+        <ol>
+          <li>
+            Open a terminal in the project folder
+            <code>ai-with-hardware</code>.
+          </li>
+          <li>
+            Launch the PC script (Windows launcher form):
+            <pre><code>py ch4-finger-detection-pc.py</code></pre>
+            Equivalent if <code>python</code> is on your PATH:
+            <pre><code>python ch4-finger-detection-pc.py</code></pre>
+          </li>
+          <li>
+            An OpenCV window titled <code>MediaPipe Hands</code> should appear. Terminal
+            lines should print hand/finger counts each frame.
+          </li>
+          <li>
+            Hold one or two hands in view of the camera (mirrored selfie view). Extended
+            fingers should update the on-screen panel and the STEPico LED banks over
+            serial.
+          </li>
+        </ol>
+
+        <h4>D. Shut down</h4>
+        <ol>
+          <li>
+            Press <code>q</code> in the OpenCV window, or Ctrl+C in the terminal.
+            The <code>finally</code> block closes <code>COM4</code>, releases the
+            camera, and destroys windows.
+          </li>
+          <li>
+            Confirm the terminal printed something like <code>Closed COM4.</code> before
+            reopening Thonny or unplugging the board.
+          </li>
+        </ol>
+
+        <h4>If something fails</h4>
+        <table>
+          <thead>
+            <tr><th>Symptom</th><th>Likely fix</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>Serial error on COM4</code> / Access denied</td>
+              <td>Close Thonny and Serial Monitor; end leftover <code>python.exe</code>; unplug/replug the board; verify the COM number</td>
+            </tr>
+            <tr>
+              <td>Empty / no camera window</td>
+              <td>Free the webcam from other apps; try another <code>VideoCapture</code> index</td>
+            </tr>
+            <tr>
+              <td>Camera works but LEDs never change</td>
+              <td>Firmware not running on the Pico — re-Run <code>ch4-finger-detection-stepico.py</code> in Thonny, close Thonny, restart the PC script; check LED wiring vs pin map in the STEPico file</td>
+            </tr>
+            <tr>
+              <td>Wrong COM in Thonny vs script</td>
+              <td>Align Thonny’s Board CDC port and <code>port = "…"</code> in the PC file</td>
+            </tr>
+          </tbody>
+        </table>
 
         <h3>Known quirks in this source</h3>
         <ul>
