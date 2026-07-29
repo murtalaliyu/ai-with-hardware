@@ -55,11 +55,11 @@ def count_fingers(hand_landmarks):
         # Index
         not is_finger_bent(landmarks, 5, 6, 7) and is_finger_straight(landmarks, 8, 5),
         # Middle
-        not is_finger_bent(landmarks, 9, 10, 11) and is_finger_bent(landmarks, 12, 9),
+        not is_finger_bent(landmarks, 9, 10, 11) and is_finger_straight(landmarks, 12, 9),
         # Ring
-        not is_finger_bent(landmarks, 13, 14, 15) and is_finger_bent(landmarks, 16, 13),
+        not is_finger_bent(landmarks, 13, 14, 15) and is_finger_straight(landmarks, 16, 13),
         # Pinky
-        not is_finger_bent(landmarks, 17, 18, 19) and is_finger_bent(landmarks, 20, 17)
+        not is_finger_bent(landmarks, 17, 18, 19) and is_finger_straight(landmarks, 20, 17)
     ]
 
     return sum(finger_states), finger_states
@@ -126,7 +126,7 @@ with mp_hands.Hands(
                     hand_landmarks,
                     mp_hands.HAND_CONNECTIONS,
                     mp_drawing_styles.get_default_hand_landmarks_style(),
-                    mp.drawing_styles.get_default_hand_connections_style()
+                    mp_drawing_styles.get_default_hand_connections_style()
                 )
 
                 finger_count, _ = count_fingers(hand_landmarks)
