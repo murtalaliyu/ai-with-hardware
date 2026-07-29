@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Technical Documentation — Chapter 4 Finger Detection (STEPico)</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --surface: #fffcf7;
+      --ink: #1a1f24;
+      --muted: #5c6570;
+      --line: #d8d2c6;
+      --accent: #0b6e4f;
+      --accent-soft: #e3f2ec;
+      --code-bg: #1e2430;
+      --code-ink: #e8ecf1;
+      --warn: #8a4b12;
+      --warn-bg: #fff3e6;
+      --line-num: #7a8490;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at top left, #efe8dc 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.65;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 2rem 1.25rem;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 252, 247, 0.92);
+      backdrop-filter: blur(6px);
+    }
+
+    nav .brand {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    nav h1 {
+      font-size: 1.05rem;
+      margin: 0 0 1.5rem;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    nav a {
+      display: block;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      padding: 0.3rem 0;
+    }
+
+    nav a:hover { color: var(--accent); }
+
+    main {
+      padding: 2.5rem 2.75rem 4rem;
+    }
+
+    header.doc-header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    header.doc-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+    }
+
+    header.doc-header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 62ch;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .chip {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #b7d9cb;
+    }
+
+    section {
+      margin-bottom: 2.75rem;
+      scroll-margin-top: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      margin: 0 0 0.85rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      margin: 1.5rem 0 0.6rem;
+      color: var(--ink);
+    }
+
+    h4 {
+      font-size: 0.98rem;
+      margin: 1.25rem 0 0.45rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    p, li { max-width: 72ch; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #efe9de;
+      font-weight: 600;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    code {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 0.88em;
+    }
+
+    p code, li code, td code {
+      background: #ece7dd;
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 1rem 1.15rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn);
+      padding: 0.85rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      color: #4a3218;
+      max-width: 72ch;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin: 1rem 0;
+      max-width: 72ch;
+    }
+
+    .flow {
+      display: grid;
+      gap: 0.5rem;
+      margin: 1rem 0;
+      max-width: 42rem;
+    }
+
+    .flow-step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+    }
+
+    .flow-step::before {
+      content: attr(data-n);
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      line-height: 1.5rem;
+      text-align: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.6rem;
+    }
+
+    .line-block {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      margin: 0.85rem 0;
+    }
+
+    .line-block .ln {
+      display: inline-block;
+      min-width: 3.2rem;
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 0.8rem;
+      color: var(--line-num);
+      font-weight: 600;
+    }
+
+    .line-block pre {
+      margin: 0.5rem 0 0.75rem;
+    }
+
+    .pin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.6rem;
+      margin: 1rem 0;
+      max-width: 48rem;
+    }
+
+    .pin-grid .pin {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .pin-grid .pin strong {
+      display: block;
+      color: var(--accent);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      nav {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 1.5rem 1.25rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <div class="brand">AI with Hardware · Chapter 4</div>
+      <h1>Finger Detection (STEPico) Docs</h1>
+      <a href="#overview">1. Overview</a>
+      <a href="#architecture">2. System Architecture</a>
+      <a href="#dependencies">3. Dependencies &amp; Imports</a>
+      <a href="#left-leds">4. Left-Hand LED Pins</a>
+      <a href="#right-leds">5. Right-Hand LED Pins</a>
+      <a href="#led-banks">6. LED Banks &amp; State</a>
+      <a href="#turn-on-leds">7. turn_on_LEDs</a>
+      <a href="#main-loop">8. Main Loop &amp; Polling</a>
+      <a href="#protocol">9. Serial Protocol Parser</a>
+      <a href="#state-machine">10. Hand State Machine</a>
+      <a href="#wiring">11. GPIO Wiring Map</a>
+      <a href="#line-index">12. Full Line Index</a>
+      <a href="#usage">13. Usage Notes</a>
+    </nav>
+
+    <main>
+      <header class="doc-header">
+        <h1>Technical Documentation</h1>
+        <p>
+          Line-by-line reference for
+          <code>ch4-finger-detection-stepico.py</code>: MicroPython firmware that
+          runs on a STEPico (Raspberry Pi Pico–compatible) board, reads a compact
+          ASCII serial protocol from USB stdin, and drives two banks of five LEDs
+          to mirror finger counts detected by the PC vision script.
+        </p>
+        <div class="meta">
+          <span class="chip">MicroPython</span>
+          <span class="chip">STEPico / RP2040</span>
+          <span class="chip">GPIO LEDs</span>
+          <span class="chip">USB Serial stdin</span>
+          <span class="chip">uselect polling</span>
+        </div>
+      </header>
+
+      <!-- 1. Overview -->
+      <section id="overview">
+        <h2>1. Overview</h2>
+        <p>
+          This script is the microcontroller half of the Chapter 4 finger-detection
+          demo. It does no computer vision itself. Instead it waits for single-byte
+          commands arriving over the USB serial link (exposed in MicroPython as
+          <code>sys.stdin</code>), interprets them with a tiny two-step state machine,
+          and sets GPIO pins high or low so physical LEDs light in proportion to the
+          number of extended fingers reported by the PC.
+        </p>
+        <div class="card">
+          <strong>Companion PC script</strong>
+          <p style="margin: 0.4rem 0 0;">
+            The vision / transmitter side is
+            <code>ch4-finger-detection-pc.py</code>. It uses MediaPipe Hands to count
+            fingers and writes characters such as <code>1</code>+digit,
+            <code>2</code>+digit, <code>L</code>, <code>R</code>, and <code>V</code>
+            to the same COM port this firmware is listening on.
+          </p>
+        </div>
+        <div class="flow">
+          <div class="flow-step" data-n="1">Poll USB stdin (non-blocking)</div>
+          <div class="flow-step" data-n="2">Read one character when data is ready</div>
+          <div class="flow-step" data-n="3">State machine: hand select vs finger count vs test keys</div>
+          <div class="flow-step" data-n="4">Drive left or right LED bank via GPIO</div>
+          <div class="flow-step" data-n="5">Loop forever</div>
+        </div>
+      </section>
+
+      <!-- 2. Architecture -->
+      <section id="architecture">
+        <h2>2. System Architecture</h2>
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Component</th><th>Responsibility</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Runtime</td>
+              <td>MicroPython on STEPico / Pico</td>
+              <td>Interpret the script; expose <code>machine.Pin</code> and USB CDC stdin</td>
+            </tr>
+            <tr>
+              <td>I/O input</td>
+              <td><code>sys.stdin</code> + <code>uselect</code></td>
+              <td>Non-blocking poll and read of serial bytes from the PC</td>
+            </tr>
+            <tr>
+              <td>Protocol</td>
+              <td><code>hand</code> state + character branches</td>
+              <td>Pair a hand-select digit with a following finger-count digit</td>
+            </tr>
+            <tr>
+              <td>Actuation</td>
+              <td><code>turn_on_LEDs</code></td>
+              <td>Set the first <em>N</em> LEDs of a bank high; the rest low</td>
+            </tr>
+            <tr>
+              <td>Hardware</td>
+              <td>10 GPIO pins → LEDs</td>
+              <td>Two banks of five colored LEDs (left / right hand)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 3. Dependencies -->
+      <section id="dependencies">
+        <h2>3. Dependencies &amp; Imports <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 1–4)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Line 1</span>
+          <pre><code>from machine import Pin</code></pre>
+          <p>
+            Imports the MicroPython <code>Pin</code> class from the
+            <code>machine</code> module. <code>Pin</code> is the hardware abstraction
+            for a single GPIO line. Later calls like
+            <code>Pin(20, Pin.OUT)</code> configure that pad as a digital output and
+            return an object whose <code>.value(0|1)</code> method drives the pin low
+            or high.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 2</span>
+          <pre><code>import time</code></pre>
+          <p>
+            Imports the MicroPython <code>time</code> module (provides
+            <code>time.sleep</code>, <code>time.ticks_ms</code>, etc.). In this file
+            it is <strong>never called</strong> — there is no delay or timestamp. It
+            is likely leftover from an earlier revision that blinked LEDs or paced
+            the loop. Harmless to leave; safe to remove for a cleaner script.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 3</span>
+          <pre><code>from sys import stdin</code></pre>
+          <p>
+            Imports the standard-input stream object. On a Pico / STEPico connected
+            over USB, MicroPython maps the USB CDC serial port to
+            <code>sys.stdin</code> / <code>sys.stdout</code>. Characters the PC writes
+            with PySerial appear here as readable bytes. The firmware therefore does
+            not open a UART device explicitly — USB serial <em>is</em> stdin.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 4</span>
+          <pre><code>import uselect</code></pre>
+          <p>
+            Imports MicroPython’s <code>uselect</code> module (a lightweight cousin of
+            CPython’s <code>select</code>). Used to poll whether
+            <code>stdin</code> has data ready without blocking the infinite loop.
+            Without this, a bare <code>stdin.read(1)</code> would hang until a
+            character arrived, which is fine for a simple REPL demo but less flexible
+            if you later want to multiplex other work in the same loop.
+          </p>
+        </div>
+      </section>
+
+      <!-- 4. Left LEDs -->
+      <section id="left-leds">
+        <h2>4. Left-Hand LED Pins <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 6–11)</span></h2>
+        <p>
+          Defines five digital outputs for the “left” (hand slot <code>'1'</code>)
+          LED bank. Each pin is created as an output; MicroPython initializes
+          outputs low unless otherwise specified, so LEDs start off at boot
+          (assuming active-high wiring).
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 6</span>
+          <pre><code># Define LED pins</code></pre>
+          <p>Section comment introducing the first (left-hand) bank of LED GPIO definitions.</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 7</span>
+          <pre><code>red1 = Pin(20, Pin.OUT)</code></pre>
+          <p>
+            Creates an output pin on <strong>GPIO 20</strong>, bound to the name
+            <code>red1</code>. Conventionally the first LED in the left bank (red).
+            The trailing <code>1</code> in the variable name marks “hand 1 / left.”
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 8</span>
+          <pre><code>orange1 = Pin(19, Pin.OUT)</code></pre>
+          <p>GPIO <strong>19</strong> → second left LED (orange).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 9</span>
+          <pre><code>white1 = Pin(18, Pin.OUT)</code></pre>
+          <p>GPIO <strong>18</strong> → third left LED (white).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 10</span>
+          <pre><code>green1 = Pin(17, Pin.OUT)</code></pre>
+          <p>GPIO <strong>17</strong> → fourth left LED (green).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 11</span>
+          <pre><code>blue1 = Pin(16, Pin.OUT)</code></pre>
+          <p>GPIO <strong>16</strong> → fifth left LED (blue).</p>
+        </div>
+
+        <div class="note">
+          Color names are documentation for the physical wiring order. Electrically
+          every pin is identical: digital high ≈ LED on (with a series resistor).
+          The order in the later list matters more than the color — index 0 is always
+          lit first when the finger count is 1.
+        </div>
+      </section>
+
+      <!-- 5. Right LEDs -->
+      <section id="right-leds">
+        <h2>5. Right-Hand LED Pins <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 13–18)</span></h2>
+        <p>
+          Same pattern for the “right” (hand slot <code>'2'</code>) bank. Pin numbers
+          are different so both banks can be driven independently.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 13</span>
+          <pre><code># Similarly, define the LED pins for the other hand</code></pre>
+          <p>Comment marking the second bank (right hand / hand slot 2).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 14</span>
+          <pre><code>red2 = Pin(9, Pin.OUT)</code></pre>
+          <p>GPIO <strong>9</strong> → first right LED (red).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 15</span>
+          <pre><code>orange2 = Pin(12, Pin.OUT)</code></pre>
+          <p>
+            GPIO <strong>12</strong> → second right LED (orange). Note the gap from
+            GPIO 9 to 12 — pins 10 and 11 are unused by this script (available for
+            other hardware).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 16</span>
+          <pre><code>white2 = Pin(13, Pin.OUT)</code></pre>
+          <p>GPIO <strong>13</strong> → third right LED (white).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 17</span>
+          <pre><code>green2 = Pin(14, Pin.OUT)</code></pre>
+          <p>GPIO <strong>14</strong> → fourth right LED (green).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 18</span>
+          <pre><code>blue2 = Pin(15, Pin.OUT)</code></pre>
+          <p>GPIO <strong>15</strong> → fifth right LED (blue).</p>
+        </div>
+      </section>
+
+      <!-- 6. LED banks & state -->
+      <section id="led-banks">
+        <h2>6. LED Banks &amp; State <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 20–23)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Lines 20–21</span>
+          <pre><code>left_LEDs = [red1, orange1, white1, green1, blue1]
+right_LEDs = [red2, orange2, white2, green2, blue2]</code></pre>
+          <p>
+            Packs each bank into an ordered Python list of <code>Pin</code> objects.
+            Index <code>0</code> is the first LED lit for a count of 1; index
+            <code>4</code> is the fifth. <code>turn_on_LEDs</code> iterates these
+            lists by index, so order is part of the protocol semantics: finger count
+            <em>N</em> lights LEDs <code>[0 .. N-1]</code>.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 23</span>
+          <pre><code>hand = '0'</code></pre>
+          <p>
+            Initializes the protocol state machine’s “pending hand” variable to the
+            string <code>'0'</code>, meaning <em>no hand selected yet</em>. Valid
+            transient values after a select byte are <code>'1'</code> (next digit
+            applies to left bank) and <code>'2'</code> (next digit applies to right
+            bank). After applying a finger count, the code resets
+            <code>hand</code> back to <code>'0'</code>.
+          </p>
+          <div class="note">
+            Using a string (<code>'0'</code>, <code>'1'</code>, <code>'2'</code>)
+            rather than an integer keeps comparisons identical to the character
+            values read from stdin (<code>stdin.read(1)</code> returns a 1-character
+            string in MicroPython).
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. turn_on_LEDs -->
+      <section id="turn-on-leds">
+        <h2>7. turn_on_LEDs <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 25–38)</span></h2>
+        <p>
+          Core actuator helper. Given a list of five LED pins and a count, turns on
+          the first <em>N</em> LEDs and turns the remainder off. Also handles the
+          special case <em>N</em> = 0 (all off).
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 25</span>
+          <pre><code>def turn_on_LEDs(LEDs, num_LEDs):</code></pre>
+          <p>
+            Function signature:
+          </p>
+          <ul>
+            <li><code>LEDs</code> — a list of <code>Pin</code> objects (either <code>left_LEDs</code> or <code>right_LEDs</code>)</li>
+            <li><code>num_LEDs</code> — how many LEDs to light; may arrive as a string digit (e.g. <code>'3'</code>) from serial, or as an int (e.g. <code>5</code>) from the <code>L</code>/<code>R</code> test branches</li>
+          </ul>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 26</span>
+          <pre><code>num_LEDs = int(num_LEDs)</code></pre>
+          <p>
+            Coerces the count to an integer. Essential because the serial path passes
+            a raw character such as <code>'3'</code>; without <code>int(...)</code>,
+            comparisons like <code>num_LEDs == 0</code> and
+            <code>range(num_LEDs)</code> would fail or behave incorrectly on a string.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 28–31</span>
+          <pre><code>if num_LEDs == 0:
+    # if no finger shows up
+    for leds in LEDs:
+        leds.value(0)</code></pre>
+          <p>
+            Zero-finger case: iterate every pin in the bank and drive it
+            <code>0</code> (logic low → LED off for active-high wiring). The loop
+            variable is named <code>leds</code> (plural) but each iteration is a
+            single <code>Pin</code>.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 32–35</span>
+          <pre><code>else:
+    for i in range(num_LEDs):
+        # turn on the corresponding number of LEDs
+        LEDs[i].value(1)</code></pre>
+          <p>
+            For any positive count, light indices <code>0</code> through
+            <code>num_LEDs - 1</code> by writing logic high (<code>1</code>).
+            Example: <code>num_LEDs == 3</code> turns on red, orange, and white in
+            that bank.
+          </p>
+          <div class="note">
+            There is no bounds check. If <code>num_LEDs</code> were greater than 5
+            (e.g. a corrupted character that still parses as an int larger than 5, or
+            a bug on the PC side), <code>LEDs[i]</code> would raise
+            <code>IndexError</code>. In normal use the PC only sends digits
+            <code>0</code>–<code>5</code>, and the test keys hard-code
+            <code>5</code>.
+          </div>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 36–38</span>
+          <pre><code># turn off the rest of the LEDs
+for i in range(num_LEDs, 5, 1):
+    LEDs[i].value(0)</code></pre>
+          <p>
+            Clears the unused LEDs in the same bank so a previous higher count does
+            not leave stale lights on. <code>range(num_LEDs, 5, 1)</code> yields
+            <code>num_LEDs, num_LEDs+1, …, 4</code>. The step argument
+            <code>1</code> is the default and could be omitted; it is written
+            explicitly for clarity.
+          </p>
+          <p>
+            Example: if the bank previously showed 5 LEDs and a new count of 2
+            arrives, indices 0–1 go high in the first loop, and indices 2–4 go low
+            here.
+          </p>
+        </div>
+
+        <h3>Behavior summary</h3>
+        <table>
+          <thead>
+            <tr><th><code>num_LEDs</code></th><th>LEDs on (indices)</th><th>LEDs off</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>none</td><td>0–4 (all)</td></tr>
+            <tr><td>1</td><td>0</td><td>1–4</td></tr>
+            <tr><td>2</td><td>0–1</td><td>2–4</td></tr>
+            <tr><td>3</td><td>0–2</td><td>3–4</td></tr>
+            <tr><td>4</td><td>0–3</td><td>4</td></tr>
+            <tr><td>5</td><td>0–4 (all)</td><td>none</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 8. Main loop -->
+      <section id="main-loop">
+        <h2>8. Main Loop &amp; Polling <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 40–46, 65–66)</span></h2>
+        <p>
+          An infinite loop continuously checks whether serial data is available and
+          drains every pending character through the protocol parser.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 40</span>
+          <pre><code>while True:</code></pre>
+          <p>
+            Starts the forever loop that constitutes the firmware’s main program.
+            There is no exit condition, sleep, or watchdog kick — the board runs this
+            until power loss, soft reset, or the MicroPython soft-reboot (e.g. Stop
+            in Thonny).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 41–42</span>
+          <pre><code># to receive input via serial communication
+select_result = uselect.select([stdin], [], [], 0)</code></pre>
+          <p>
+            Non-blocking poll of the readable set. Arguments:
+          </p>
+          <ul>
+            <li><code>[stdin]</code> — watch this stream for readability</li>
+            <li><code>[]</code> — empty writable set</li>
+            <li><code>[]</code> — empty “exceptional” set</li>
+            <li><code>0</code> — timeout of 0 seconds → return immediately</li>
+          </ul>
+          <p>
+            Return value is a 3-tuple
+            <code>(readable, writable, exceptional)</code>.
+            <code>select_result[0]</code> is a list of streams that have data; it is
+            non-empty when at least one byte is waiting on stdin.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 44–46</span>
+          <pre><code>while select_result[0]:
+    # assign the first character to input_character
+    input_character = stdin.read(1)</code></pre>
+          <p>
+            Inner drain loop: as long as the readable list is truthy (data pending),
+            read exactly one character into <code>input_character</code>.
+            <code>stdin.read(1)</code> returns a length-1 string such as
+            <code>'1'</code>, <code>'3'</code>, or <code>'L'</code>.
+          </p>
+          <p>
+            Processing one byte at a time is required by the two-byte protocol
+            (hand select, then count): each iteration of this inner loop advances
+            the state machine by one character.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 65–66</span>
+          <pre><code># reset the empty input holder
+select_result = uselect.select([stdin], [], [], 0)</code></pre>
+          <p>
+            After handling one character (or, more precisely, at the end of each
+            outer-loop iteration’s body — see control-flow note below), the code
+            re-polls stdin and stores the fresh result in
+            <code>select_result</code>. This both:
+          </p>
+          <ul>
+            <li>feeds the next evaluation of <code>while select_result[0]</code> so multiple buffered bytes can be drained in one outer iteration, and</li>
+            <li>clears the “holder” when the queue is empty so the inner <code>while</code> stops</li>
+          </ul>
+          <div class="note">
+            Indentation detail: in the source file, line 66 sits at the
+            <em>outer</em> <code>while True</code> indent level (same as the first
+            <code>select</code>), not inside the character-handler branches. That
+            means: enter outer loop → poll → while data remains, read &amp; handle
+            one char → after the inner <code>while</code> exits, poll again once →
+            outer loop repeats. The trailing poll on line 66 is somewhat redundant
+            with the poll at the top of the next outer iteration, but keeps
+            <code>select_result</code> updated after draining.
+          </div>
+          <div class="note">
+            Important MicroPython nuance: the condition
+            <code>while select_result[0]:</code> does <em>not</em> re-call
+            <code>select</code> by itself. After reading one character,
+            <code>select_result</code> still holds the <em>old</em> readable list
+            until line 66 runs — which is only after the inner <code>while</code>
+            body finishes… but the body does not update <code>select_result</code>
+            before looping again. In practice this can mean the inner
+            <code>while</code> keeps iterating with a stale truthy
+            <code>select_result[0]</code> even after the buffer is empty, causing
+            <code>stdin.read(1)</code> to block until another byte arrives (or
+            return empty depending on platform). If you observe hangs between
+            frames, move the re-poll to the <em>end of the inner loop body</em>
+            (or break when <code>read(1)</code> returns empty). As written, the
+            PC’s continuous stream of characters often masks the issue.
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. Protocol parser -->
+      <section id="protocol">
+        <h2>9. Serial Protocol Parser <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 48–64)</span></h2>
+        <p>
+          Inside the drain loop, each character is dispatched by an
+          <code>if</code> / <code>elif</code> chain. Priority order matters: if
+          <code>hand</code> is already <code>'1'</code> or <code>'2'</code>, the
+          current character is treated as a <em>finger count</em>, not as a new
+          hand-select or test key — even if that character happens to be
+          <code>'1'</code>, <code>'2'</code>, <code>'L'</code>, or <code>'R'</code>.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Lines 48–52</span>
+          <pre><code># if one hand shows up
+if hand == '1':
+    # reset the number of hands
+    hand = '0'
+    turn_on_LEDs(left_LEDs, input_character)</code></pre>
+          <p>
+            When a previous character set <code>hand</code> to <code>'1'</code>, this
+            branch consumes the <em>current</em> character as the left-bank finger
+            count. It immediately clears the pending state (<code>hand = '0'</code>)
+            and calls <code>turn_on_LEDs(left_LEDs, input_character)</code>.
+            Example PC payload <code>b'13'</code>: first byte sets
+            <code>hand='1'</code>; second byte <code>'3'</code> reaches this branch
+            and lights three left LEDs.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 53–56</span>
+          <pre><code># if two hands show up
+elif hand == '2':
+    hand = '0'
+    turn_on_LEDs(right_LEDs, input_character)</code></pre>
+          <p>
+            Same pattern for hand slot 2 / right LED bank. PC payload
+            <code>b'24'</code> → select right, then light four right LEDs.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 57–59</span>
+          <pre><code># input the number of hands
+elif input_character == '1' or input_character == '2':
+    hand = input_character</code></pre>
+          <p>
+            Only reached when <code>hand</code> is still <code>'0'</code> (no pending
+            select). If the character is <code>'1'</code> or <code>'2'</code>, store
+            it in <code>hand</code> and wait for the next byte to supply the count.
+            No LEDs change on this character alone.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 60–62</span>
+          <pre><code># turn all lights on for one hand for testing
+elif input_character == 'L':
+    turn_on_LEDs(left_LEDs, 5)</code></pre>
+          <p>
+            Test / fill command: light all five left LEDs. The PC companion currently
+            sends <code>'L'</code> when <em>no hands</em> are detected (see PC docs) —
+            so in the full demo this branch often means “no vision detection,” not
+            merely a manual test, despite the comment.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 63–64</span>
+          <pre><code>elif input_character == 'R':
+    turn_on_LEDs(right_LEDs, 5)</code></pre>
+          <p>
+            Same for the right bank. The PC sends <code>'R'</code> when exactly one
+            hand is visible (after updating the left bank), which fills all right
+            LEDs rather than turning them off.
+          </p>
+        </div>
+
+        <h3>Characters with no handler</h3>
+        <p>
+          Any other character — including the PC’s per-frame <code>'V'</code>
+          heartbeat — falls through all branches and is ignored. No error is raised;
+          the loop simply continues.
+        </p>
+
+        <h3>Protocol summary (PC → STEPico)</h3>
+        <table>
+          <thead>
+            <tr><th>Bytes</th><th>Firmware action</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>'1'</code> then <code>'0'</code>–<code>'5'</code></td>
+              <td>Select left bank; light that many left LEDs (0 = all left off)</td>
+            </tr>
+            <tr>
+              <td><code>'2'</code> then <code>'0'</code>–<code>'5'</code></td>
+              <td>Select right bank; light that many right LEDs</td>
+            </tr>
+            <tr>
+              <td><code>'L'</code></td>
+              <td>All five left LEDs on</td>
+            </tr>
+            <tr>
+              <td><code>'R'</code></td>
+              <td>All five right LEDs on</td>
+            </tr>
+            <tr>
+              <td><code>'V'</code> or other</td>
+              <td>No-op (ignored)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 10. State machine -->
+      <section id="state-machine">
+        <h2>10. Hand State Machine</h2>
+        <p>
+          The variable <code>hand</code> implements a two-state handshake that turns
+          a stream of single bytes into paired (bank, count) commands.
+        </p>
+
+        <div class="flow">
+          <div class="flow-step" data-n="A">hand = '0' (idle)</div>
+          <div class="flow-step" data-n="B">Receive '1' or '2' → hand becomes that digit (armed)</div>
+          <div class="flow-step" data-n="C">Next byte → apply count to left or right bank; hand = '0'</div>
+          <div class="flow-step" data-n="D">Or, while idle, 'L' / 'R' bypass the pair and fill a bank</div>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Current <code>hand</code></th><th>Incoming char</th><th>Next <code>hand</code></th><th>Side effect</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>'0'</code></td>
+              <td><code>'1'</code></td>
+              <td><code>'1'</code></td>
+              <td>None (wait for count)</td>
+            </tr>
+            <tr>
+              <td><code>'0'</code></td>
+              <td><code>'2'</code></td>
+              <td><code>'2'</code></td>
+              <td>None (wait for count)</td>
+            </tr>
+            <tr>
+              <td><code>'0'</code></td>
+              <td><code>'L'</code></td>
+              <td><code>'0'</code></td>
+              <td>Left bank all on</td>
+            </tr>
+            <tr>
+              <td><code>'0'</code></td>
+              <td><code>'R'</code></td>
+              <td><code>'0'</code></td>
+              <td>Right bank all on</td>
+            </tr>
+            <tr>
+              <td><code>'1'</code></td>
+              <td>any (e.g. <code>'3'</code>)</td>
+              <td><code>'0'</code></td>
+              <td><code>turn_on_LEDs(left_LEDs, char)</code></td>
+            </tr>
+            <tr>
+              <td><code>'2'</code></td>
+              <td>any (e.g. <code>'4'</code>)</td>
+              <td><code>'0'</code></td>
+              <td><code>turn_on_LEDs(right_LEDs, char)</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note">
+          Because the armed states treat <em>any</em> next character as a count,
+          a desynchronized stream can mis-apply commands. Example: if a count byte
+          is dropped and the next frame’s <code>'1'</code> arrives while
+          <code>hand</code> is still <code>'1'</code>, that <code>'1'</code> is
+          interpreted as “light 1 left LED” instead of “select left.” Continuous
+          PC traffic plus the ignored <code>'V'</code> usually recovers within a
+          frame or two, but there is no explicit resync token.
+        </div>
+      </section>
+
+      <!-- 11. Wiring -->
+      <section id="wiring">
+        <h2>11. GPIO Wiring Map</h2>
+        <p>
+          Physical mapping implied by the pin constants. Wire each LED (with an
+          appropriate series resistor) from the GPIO to ground for active-high
+          drive, or follow your STEPico lab board’s silkscreen if LEDs are
+          pre-mounted.
+        </p>
+
+        <h3>Left bank (hand <code>'1'</code>)</h3>
+        <div class="pin-grid">
+          <div class="pin"><strong>GPIO 20</strong>red1 · index 0</div>
+          <div class="pin"><strong>GPIO 19</strong>orange1 · index 1</div>
+          <div class="pin"><strong>GPIO 18</strong>white1 · index 2</div>
+          <div class="pin"><strong>GPIO 17</strong>green1 · index 3</div>
+          <div class="pin"><strong>GPIO 16</strong>blue1 · index 4</div>
+        </div>
+
+        <h3>Right bank (hand <code>'2'</code>)</h3>
+        <div class="pin-grid">
+          <div class="pin"><strong>GPIO 9</strong>red2 · index 0</div>
+          <div class="pin"><strong>GPIO 12</strong>orange2 · index 1</div>
+          <div class="pin"><strong>GPIO 13</strong>white2 · index 2</div>
+          <div class="pin"><strong>GPIO 14</strong>green2 · index 3</div>
+          <div class="pin"><strong>GPIO 15</strong>blue2 · index 4</div>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Bank</th><th>GPIO pins (index 0 → 4)</th><th>Selected by</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Left</td>
+              <td>20, 19, 18, 17, 16</td>
+              <td>Serial <code>'1'</code> + count, or <code>'L'</code></td>
+            </tr>
+            <tr>
+              <td>Right</td>
+              <td>9, 12, 13, 14, 15</td>
+              <td>Serial <code>'2'</code> + count, or <code>'R'</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 12. Line index -->
+      <section id="line-index">
+        <h2>12. Full Line Index</h2>
+        <table>
+          <thead>
+            <tr><th>Lines</th><th>Section</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1–4</td><td>Imports (<code>Pin</code>, <code>time</code>, <code>stdin</code>, <code>uselect</code>)</td></tr>
+            <tr><td>6–11</td><td>Left-hand LED pin objects (GPIO 20–16)</td></tr>
+            <tr><td>13–18</td><td>Right-hand LED pin objects (GPIO 9, 12–15)</td></tr>
+            <tr><td>20–21</td><td><code>left_LEDs</code> / <code>right_LEDs</code> lists</td></tr>
+            <tr><td>23</td><td><code>hand = '0'</code> protocol state</td></tr>
+            <tr><td>25–38</td><td><code>turn_on_LEDs</code> helper</td></tr>
+            <tr><td>40</td><td><code>while True</code> main loop</td></tr>
+            <tr><td>41–42</td><td>Non-blocking <code>uselect.select</code> on stdin</td></tr>
+            <tr><td>44–46</td><td>Inner drain loop; <code>stdin.read(1)</code></td></tr>
+            <tr><td>48–52</td><td>Armed <code>hand == '1'</code> → drive left bank</td></tr>
+            <tr><td>53–56</td><td>Armed <code>hand == '2'</code> → drive right bank</td></tr>
+            <tr><td>57–59</td><td>Idle: accept hand-select <code>'1'</code> / <code>'2'</code></td></tr>
+            <tr><td>60–64</td><td>Idle: test / fill keys <code>'L'</code> / <code>'R'</code></td></tr>
+            <tr><td>65–66</td><td>Re-poll stdin after drain cycle</td></tr>
+            <tr><td>67</td><td>Trailing blank line (end of file)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 13. Usage -->
+      <section id="usage">
+        <h2>13. Usage Notes</h2>
+
+        <h3>Requirements</h3>
+        <ul>
+          <li>STEPico or Raspberry Pi Pico (RP2040) with MicroPython installed</li>
+          <li>Ten LEDs (plus series resistors) wired to the GPIO map above, or a lab board with those pins pre-connected</li>
+          <li>USB cable for power and CDC serial</li>
+          <li>Optional: Thonny IDE to load and run the script</li>
+          <li>Companion PC script <code>ch4-finger-detection-pc.py</code> for the full vision demo</li>
+        </ul>
+
+        <h3>Run — firmware only (manual smoke test)</h3>
+        <ol>
+          <li>Open <code>ch4-finger-detection-stepico.py</code> in Thonny.</li>
+          <li>Select interpreter <strong>MicroPython (Raspberry Pi Pico)</strong> on the correct COM port.</li>
+          <li>Click <strong>Run</strong>. The infinite loop starts.</li>
+          <li>
+            In the Thonny shell, type characters (they go to stdin):
+            <ul>
+              <li><code>L</code> → all left LEDs on</li>
+              <li><code>R</code> → all right LEDs on</li>
+              <li><code>13</code> → left bank shows 3 LEDs</li>
+              <li><code>20</code> → right bank all off</li>
+              <li><code>25</code> → right bank all on via count path</li>
+            </ul>
+          </li>
+        </ol>
+
+        <h3>Run — full demo with PC vision</h3>
+        <ol>
+          <li>Run this firmware on the board (Thonny ▶, or save as <code>main.py</code> for auto-start).</li>
+          <li>
+            Release the COM port: close Thonny’s serial connection / quit Thonny so
+            the PC script can open the same port.
+          </li>
+          <li>
+            On the PC, set <code>port</code> in
+            <code>ch4-finger-detection-pc.py</code> to match Device Manager, then run:
+            <pre><code>py ch4-finger-detection-pc.py</code></pre>
+          </li>
+          <li>Show one or two hands to the webcam; LED banks should track finger counts.</li>
+        </ol>
+
+        <div class="note">
+          Only one host process can own the USB serial port at a time. Thonny’s REPL
+          and the PC PySerial client will conflict (“Access is denied”) if both try
+          to open the same COM port.
+        </div>
+
+        <h3>Known quirks in this source</h3>
+        <ul>
+          <li><code>time</code> is imported but never used</li>
+          <li><code>'V'</code> from the PC is ignored (no branch)</li>
+          <li>
+            PC “no hands” → <code>'L'</code> lights <em>all</em> left LEDs; it does
+            not call <code>turn_on_LEDs(..., 0)</code>
+          </li>
+          <li>
+            PC “one hand” also sends <code>'R'</code>, filling the right bank
+          </li>
+          <li>
+            No bounds check in <code>turn_on_LEDs</code> for counts &gt; 5
+          </li>
+          <li>
+            Inner <code>while select_result[0]</code> may use a stale poll result
+            until the outer re-poll; consider re-selecting after each
+            <code>read(1)</code> if you see blocking behavior
+          </li>
+          <li>
+            Protocol can desync if a byte is lost while <code>hand</code> is armed
+          </li>
+        </ul>
+
+        <h3>Relationship to PC serial writes</h3>
+        <table>
+          <thead>
+            <tr><th>PC condition</th><th>Bytes written</th><th>STEPico effect</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>≥1 hand</td>
+              <td><code>'1'</code> + count digit</td>
+              <td>Left bank shows that count</td>
+            </tr>
+            <tr>
+              <td>≥2 hands</td>
+              <td><code>'2'</code> + count digit</td>
+              <td>Right bank shows that count</td>
+            </tr>
+            <tr>
+              <td>Exactly 1 hand</td>
+              <td>also <code>'R'</code></td>
+              <td>All right LEDs on</td>
+            </tr>
+            <tr>
+              <td>0 hands</td>
+              <td><code>'L'</code></td>
+              <td>All left LEDs on</td>
+            </tr>
+            <tr>
+              <td>Every frame</td>
+              <td><code>'V'</code></td>
+              <td>Ignored</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer>
+        Source file: <code>ch4-finger-detection-stepico.py</code> ·
+        Companion: <code>ch4-finger-detection-pc.py</code> ·
+        AI with Hardware · Chapter 4 · Finger Detection (STEPico)
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
