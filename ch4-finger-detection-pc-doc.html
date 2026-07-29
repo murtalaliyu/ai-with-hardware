@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Technical Documentation — Chapter 4 Finger Detection (PC)</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --surface: #fffcf7;
+      --ink: #1a1f24;
+      --muted: #5c6570;
+      --line: #d8d2c6;
+      --accent: #0b6e4f;
+      --accent-soft: #e3f2ec;
+      --code-bg: #1e2430;
+      --code-ink: #e8ecf1;
+      --warn: #8a4b12;
+      --warn-bg: #fff3e6;
+      --line-num: #7a8490;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at top left, #efe8dc 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.65;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 2rem 1.25rem;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 252, 247, 0.92);
+      backdrop-filter: blur(6px);
+    }
+
+    nav .brand {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    nav h1 {
+      font-size: 1.05rem;
+      margin: 0 0 1.5rem;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    nav a {
+      display: block;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      padding: 0.3rem 0;
+    }
+
+    nav a:hover { color: var(--accent); }
+
+    main {
+      padding: 2.5rem 2.75rem 4rem;
+    }
+
+    header.doc-header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    header.doc-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+    }
+
+    header.doc-header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 62ch;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .chip {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #b7d9cb;
+    }
+
+    section {
+      margin-bottom: 2.75rem;
+      scroll-margin-top: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      margin: 0 0 0.85rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      margin: 1.5rem 0 0.6rem;
+      color: var(--ink);
+    }
+
+    h4 {
+      font-size: 0.98rem;
+      margin: 1.25rem 0 0.45rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    p, li { max-width: 72ch; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #efe9de;
+      font-weight: 600;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    code {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 0.88em;
+    }
+
+    p code, li code, td code {
+      background: #ece7dd;
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 1rem 1.15rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn);
+      padding: 0.85rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      color: #4a3218;
+      max-width: 72ch;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin: 1rem 0;
+      max-width: 72ch;
+    }
+
+    .flow {
+      display: grid;
+      gap: 0.5rem;
+      margin: 1rem 0;
+      max-width: 42rem;
+    }
+
+    .flow-step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+    }
+
+    .flow-step::before {
+      content: attr(data-n);
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      line-height: 1.5rem;
+      text-align: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.6rem;
+    }
+
+    .line-block {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      margin: 0.85rem 0;
+    }
+
+    .line-block .ln {
+      display: inline-block;
+      min-width: 3.2rem;
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 0.8rem;
+      color: var(--line-num);
+      font-weight: 600;
+    }
+
+    .line-block pre {
+      margin: 0.5rem 0 0.75rem;
+    }
+
+    .hand-diagram {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.6rem;
+      margin: 1rem 0;
+      max-width: 48rem;
+    }
+
+    .hand-diagram .joint {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .hand-diagram .joint strong {
+      display: block;
+      color: var(--accent);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      nav {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 1.5rem 1.25rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <div class="brand">AI with Hardware · Chapter 4</div>
+      <h1>Finger Detection (PC) Docs</h1>
+      <a href="#overview">1. Overview</a>
+      <a href="#architecture">2. System Architecture</a>
+      <a href="#dependencies">3. Dependencies &amp; Imports</a>
+      <a href="#calculate-distance">4. calculate_distance</a>
+      <a href="#calculate-angle">5. calculate_angle</a>
+      <a href="#is-finger-straight">6. is_finger_straight</a>
+      <a href="#is-finger-bent">7. is_finger_bent</a>
+      <a href="#count-fingers">8. count_fingers</a>
+      <a href="#landmarks">9. Hand Landmark Map</a>
+      <a href="#info-panel">10. create_info_panel</a>
+      <a href="#setup">11. Camera &amp; Serial Setup</a>
+      <a href="#mediapipe">12. MediaPipe Hands Context</a>
+      <a href="#main-loop">13. Main Capture Loop</a>
+      <a href="#serial-protocol">14. Serial Protocol</a>
+      <a href="#display">15. Display &amp; Exit</a>
+      <a href="#cleanup">16. Errors &amp; Cleanup</a>
+      <a href="#line-index">17. Full Line Index</a>
+      <a href="#usage">18. Usage Notes</a>
+    </nav>
+
+    <main>
+      <header class="doc-header">
+        <h1>Technical Documentation</h1>
+        <p>
+          Line-by-line reference for
+          <code>ch4-finger-detection-pc.py</code>: a PC-side vision pipeline that
+          detects hands with MediaPipe, counts extended fingers, and streams
+          results over serial UART to a STEPico microcontroller.
+        </p>
+        <div class="meta">
+          <span class="chip">OpenCV</span>
+          <span class="chip">MediaPipe Hands</span>
+          <span class="chip">Serial UART</span>
+          <span class="chip">STEPico companion</span>
+          <span class="chip">Real-time webcam</span>
+        </div>
+      </header>
+
+      <!-- 1. Overview -->
+      <section id="overview">
+        <h2>1. Overview</h2>
+        <p>
+          This script runs on a Windows (or other desktop) PC. It opens the default
+          webcam, runs Google MediaPipe’s hand-landmark model on every frame, decides
+          how many fingers are extended on each detected hand, draws the skeleton
+          overlay, and sends compact command characters to a STEPico board so that
+          onboard LEDs can mirror the finger counts. Serial I/O is wrapped in
+          <code>try</code> / <code>except</code> / <code>finally</code> so the COM
+          port and camera are released on quit, Ctrl+C, or port errors.
+        </p>
+        <div class="card">
+          <strong>Companion firmware</strong>
+          <p style="margin: 0.4rem 0 0;">
+            The microcontroller side is
+            <code>ch4-finger-detection-stepico.py</code>. It listens on stdin (USB
+            serial), interprets characters such as <code>1</code>–<code>5</code>
+            finger counts and control letters <code>L</code>, <code>R</code>,
+            <code>V</code>, and drives two banks of five LEDs (left / right hand).
+          </p>
+        </div>
+        <div class="flow">
+          <div class="flow-step" data-n="1">Webcam frame captured via OpenCV</div>
+          <div class="flow-step" data-n="2">BGR → RGB; MediaPipe Hands inference</div>
+          <div class="flow-step" data-n="3">Landmark geometry → finger count per hand</div>
+          <div class="flow-step" data-n="4">Draw overlay; send serial commands</div>
+          <div class="flow-step" data-n="5">Stack info panel; show window; repeat</div>
+        </div>
+      </section>
+
+      <!-- 2. Architecture -->
+      <section id="architecture">
+        <h2>2. System Architecture</h2>
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Component</th><th>Responsibility</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Capture</td>
+              <td><code>cv2.VideoCapture(0)</code></td>
+              <td>Read frames from the default camera device</td>
+            </tr>
+            <tr>
+              <td>Vision ML</td>
+              <td><code>mp.solutions.hands.Hands</code></td>
+              <td>Detect up to two hands; output 21 landmarks each</td>
+            </tr>
+            <tr>
+              <td>Geometry</td>
+              <td>distance / angle helpers</td>
+              <td>Classify each finger as straight or bent</td>
+            </tr>
+            <tr>
+              <td>UI</td>
+              <td>OpenCV drawing + info panel</td>
+              <td>Visual feedback for the operator</td>
+            </tr>
+            <tr>
+              <td>I/O</td>
+              <td><code>serial.Serial</code></td>
+              <td>Push finger-count protocol bytes to STEPico</td>
+            </tr>
+            <tr>
+              <td>Lifecycle</td>
+              <td><code>try</code> / <code>except</code> / <code>finally</code></td>
+              <td>Open COM with timeout; always release camera, serial, and windows</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 3. Dependencies -->
+      <section id="dependencies">
+        <h2>3. Dependencies &amp; Imports <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 1–7)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Line 1</span>
+          <pre><code>import cv2</code></pre>
+          <p>
+            Imports OpenCV (the Python binding is named <code>cv2</code>). Used for
+            webcam capture (<code>VideoCapture</code>), color-space conversion
+            (<code>cvtColor</code>), text rendering (<code>putText</code>), image
+            stacking / flipping, window display (<code>imshow</code>), and keyboard
+            polling (<code>waitKey</code>).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 2</span>
+          <pre><code>import mediapipe as mp</code></pre>
+          <p>
+            Imports Google MediaPipe under the alias <code>mp</code>. The script uses
+            the solutions API: <code>mp.solutions.hands</code>,
+            <code>mp.solutions.drawing_utils</code>, and
+            <code>mp.solutions.drawing_styles</code>.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 3</span>
+          <pre><code>import math</code></pre>
+          <p>
+            Standard-library math module. Provides <code>math.sqrt</code> for Euclidean
+            distances, and <code>math.acos</code> / <code>math.degrees</code> for angle
+            computation in degrees.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 4</span>
+          <pre><code>from mediapipe.tasks.python.components.containers import landmark</code></pre>
+          <p>
+            Imports the <code>landmark</code> container type from MediaPipe Tasks.
+            In this file the symbol is never referenced afterward — the solutions API
+            already exposes landmark objects via
+            <code>hand_landmarks.landmark</code>. This import is effectively unused
+            (likely leftover from an earlier Tasks-API experiment or auto-import).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 5</span>
+          <pre><code>import numpy as np</code></pre>
+          <p>
+            NumPy, aliased as <code>np</code>. Used to allocate the black info panel
+            array (<code>np.zeros</code>) and to vertically concatenate the camera
+            frame with that panel (<code>np.vstack</code>).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 6</span>
+          <pre><code>import time</code></pre>
+          <p>
+            Imports the standard <code>time</code> module. It is not called anywhere
+            in the current script (no <code>time.sleep</code> or timestamps). Safe to
+            remove unless you plan to add timing / FPS measurement.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 7</span>
+          <pre><code>import serial</code></pre>
+          <p>
+            Imports PySerial. Provides <code>serial.Serial</code> for opening a COM
+            port and writing encoded bytes to the STEPico over USB-UART.
+          </p>
+        </div>
+      </section>
+
+      <!-- 4. calculate_distance -->
+      <section id="calculate-distance">
+        <h2>4. calculate_distance <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 9–11)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Line 9</span>
+          <pre><code># Calculate the euclidean distance between two points</code></pre>
+          <p>Comment documenting the helper’s purpose: 2D Euclidean distance.</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 10</span>
+          <pre><code>def calculate_distance(point1, point2):</code></pre>
+          <p>
+            Defines a function taking two landmark-like objects. Each is expected to
+            expose normalized <code>.x</code> and <code>.y</code> attributes (MediaPipe
+            landmark coordinates in image space, typically in <code>[0, 1]</code>).
+            Depth (<code>.z</code>) is intentionally ignored — decisions are made in
+            the image plane.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 11</span>
+          <pre><code>return math.sqrt((point1.x - point2.x)**2 + (point1.y - point2.y)**2)</code></pre>
+          <p>
+            Implements
+            \( d = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2} \).
+            Used by <code>is_finger_straight</code> to compare tip-to-wrist vs
+            MCP-to-wrist distances.
+          </p>
+        </div>
+      </section>
+
+      <!-- 5. calculate_angle -->
+      <section id="calculate-angle">
+        <h2>5. calculate_angle <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 13–30)</span></h2>
+        <p>
+          Computes the interior angle ∠ABC where <code>b</code> is the vertex
+          (typically a PIP joint) and <code>a</code> / <code>c</code> are the adjacent
+          joints (MCP and DIP). A nearly straight finger yields an angle close to
+          180°; a bent finger yields a smaller angle.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 13</span>
+          <pre><code># Calculate the angle formed by a-b-c, where b is the vertex</code></pre>
+          <p>Documents the geometric interpretation of the three arguments.</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 14</span>
+          <pre><code>def calculate_angle(a, b, c):</code></pre>
+          <p>Function signature: three landmark objects <code>a</code>, <code>b</code>, <code>c</code>.</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 15–16</span>
+          <pre><code>AB = (a.x - b.x, a.y - b.y)     # Vector from b to a
+BC = (c.x - b.x, c.y - b.y)     # Vector from b to c</code></pre>
+          <p>
+            Builds two 2D vectors from the vertex <code>b</code>. Note the comments say
+            “from b to a” / “from b to c”, which matches the subtraction order
+            (<code>a − b</code> and <code>c − b</code>).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 18–19</span>
+          <pre><code># Calculate the dot product of the vectors
+dot_product = AB[0] * BC[0] + AB[1] * BC[1]</code></pre>
+          <p>
+            Dot product \(\mathbf{AB} \cdot \mathbf{BC} = |\mathrm{AB}|\,|\mathrm{BC}|\,\cos\theta\).
+            Index <code>[0]</code> is the x-component; <code>[1]</code> is y.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 21–23</span>
+          <pre><code># Calculate the lengths of the vectors
+magnitude_AB = math.sqrt(AB[0] ** 2 + AB[1] ** 2)
+magnitude_BC = math.sqrt(BC[0] ** 2 + BC[1] ** 2)</code></pre>
+          <p>Euclidean norms of each vector (same formula as <code>calculate_distance</code> but from origin of the vector).</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 25–26</span>
+          <pre><code># Calculate cos(theta)
+cos_angle = dot_product / (magnitude_AB * magnitude_BC)</code></pre>
+          <p>
+            Isolates \(\cos\theta\). If either magnitude is zero (degenerate / coincident
+            points), this would raise <code>ZeroDivisionError</code>; in practice
+            MediaPipe landmarks for a real hand are distinct enough that this is rare.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 28–30</span>
+          <pre><code># Use arccos to calculate the angle in degrees
+angle = math.degrees(math.acos(max(-1.0, min(1.0, cos_angle))))
+return angle</code></pre>
+          <p>
+            Clamps <code>cos_angle</code> into <code>[-1, 1]</code> before
+            <code>math.acos</code>. Floating-point rounding can push the cosine
+            slightly outside that domain, which would otherwise raise
+            <code>ValueError</code>. <code>math.degrees</code> converts radians to
+            degrees; the function returns that scalar.
+          </p>
+        </div>
+      </section>
+
+      <!-- 6. is_finger_straight -->
+      <section id="is-finger-straight">
+        <h2>6. is_finger_straight <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 32–41)</span></h2>
+        <p>
+          Heuristic: a finger is “straight / extended” if its tip is farther from the
+          wrist than its MCP (knuckle) joint. When the finger folds toward the palm,
+          the tip moves closer to the wrist and the inequality fails.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 32</span>
+          <pre><code>def is_finger_straight(landmarks, finger_tip_index, finger_mcp_index, wrist_index=0):</code></pre>
+          <p>
+            Parameters:
+          </p>
+          <ul>
+            <li><code>landmarks</code> — sequence of 21 MediaPipe hand landmarks</li>
+            <li><code>finger_tip_index</code> — landmark index of the fingertip (4, 8, 12, 16, or 20)</li>
+            <li><code>finger_mcp_index</code> — MCP index for that finger (1, 5, 9, 13, or 17)</li>
+            <li><code>wrist_index=0</code> — wrist landmark; MediaPipe always places the wrist at index 0</li>
+          </ul>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 33–36</span>
+          <pre><code># Determine if a finger is straight (based on distance)
+wrist = landmarks[wrist_index]
+finger_tip = landmarks[finger_tip_index]
+finger_mcp = landmarks[finger_mcp_index]</code></pre>
+          <p>Resolves the three landmarks used by the distance comparison.</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 38–41</span>
+          <pre><code>tip_to_wrist_distance = calculate_distance(finger_tip, wrist)
+mcp_to_wrist_distance = calculate_distance(finger_mcp, wrist)
+
+return tip_to_wrist_distance > mcp_to_wrist_distance</code></pre>
+          <p>
+            Returns <code>True</code> only when the tip is strictly farther from the
+            wrist than the MCP. Equal distances return <code>False</code> (finger not
+            counted as straight).
+          </p>
+        </div>
+      </section>
+
+      <!-- 7. is_finger_bent -->
+      <section id="is-finger-bent">
+        <h2>7. is_finger_bent <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 43–48)</span></h2>
+        <p>
+          Complementary heuristic based on joint angle at the PIP. Uses MCP → PIP → DIP
+          as the three points for <code>calculate_angle</code>.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Line 43</span>
+          <pre><code>def is_finger_bent(landmarks, mcp_index, pip_index, dip_index):</code></pre>
+          <p>
+            Arguments are landmark indices for the metacarpophalangeal (MCP), proximal
+            interphalangeal (PIP), and distal interphalangeal (DIP) joints of one finger.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 44–45</span>
+          <pre><code># Determine if a finger is bent (based on angle)
+angle = calculate_angle(landmarks[mcp_index], landmarks[pip_index], landmarks[dip_index])</code></pre>
+          <p>PIP is the vertex; angle measures how open the finger chain is.</p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 47–48</span>
+          <pre><code># Consider the finger bent if angle is less than 160 degrees 
+return angle &lt; 160</code></pre>
+          <p>
+            Threshold of <strong>160°</strong>: angles below this mean the finger is
+            considered bent. A fully extended finger is near 180°, so 160° allows a
+            small amount of natural curvature before classifying as bent. Returning
+            <code>True</code> means “bent.”
+          </p>
+        </div>
+      </section>
+
+      <!-- 8. count_fingers -->
+      <section id="count-fingers">
+        <h2>8. count_fingers <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 50–65)</span></h2>
+        <p>
+          Combines both heuristics for all five digits. A finger is counted as “up”
+          only if it is <em>not</em> bent <strong>and</strong> is straight — both
+          tests must pass.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Lines 50–51</span>
+          <pre><code>def count_fingers(hand_landmarks):
+    landmarks = hand_landmarks.landmark</code></pre>
+          <p>
+            Accepts a MediaPipe <code>NormalizedLandmarkList</code>.
+            <code>.landmark</code> is a list/repeated field of 21
+            <code>NormalizedLandmark</code> objects.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 52–63</span>
+          <pre><code>finger_states = [
+    # Thumb
+    not is_finger_bent(landmarks, 1, 2, 3) and is_finger_straight(landmarks, 4, 1),
+    # Index
+    not is_finger_bent(landmarks, 5, 6, 7) and is_finger_straight(landmarks, 8, 5),
+    # Middle
+    not is_finger_bent(landmarks, 9, 10, 11) and is_finger_straight(landmarks, 12, 9),
+    # Ring
+    not is_finger_bent(landmarks, 13, 14, 15) and is_finger_straight(landmarks, 16, 13),
+    # Pinky
+    not is_finger_bent(landmarks, 17, 18, 19) and is_finger_straight(landmarks, 20, 17)
+]</code></pre>
+          <p>Builds a list of five booleans (one per finger). Index mapping:</p>
+          <table>
+            <thead>
+              <tr><th>Finger</th><th>MCP</th><th>PIP</th><th>DIP</th><th>Tip</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Thumb</td><td>1</td><td>2</td><td>3</td><td>4</td></tr>
+              <tr><td>Index</td><td>5</td><td>6</td><td>7</td><td>8</td></tr>
+              <tr><td>Middle</td><td>9</td><td>10</td><td>11</td><td>12</td></tr>
+              <tr><td>Ring</td><td>13</td><td>14</td><td>15</td><td>16</td></tr>
+              <tr><td>Pinky</td><td>17</td><td>18</td><td>19</td><td>20</td></tr>
+            </tbody>
+          </table>
+          <p>
+            For each finger: <code>not is_finger_bent(...)</code> requires the MCP–PIP–DIP
+            angle ≥ 160°, and <code>is_finger_straight(...)</code> requires tip farther
+            from wrist than MCP. Python’s <code>and</code> short-circuits, but both
+            sides are still typically evaluated when the finger is extended.
+          </p>
+          <div class="note">
+            The thumb uses the same MCP/PIP/DIP pattern as other fingers (indices 1–3),
+            even though anatomical naming for the thumb differs (IP instead of separate
+            PIP/DIP). The heuristic is approximate and viewpoint-dependent for the thumb.
+          </div>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 65</span>
+          <pre><code>return sum(finger_states), finger_states</code></pre>
+          <p>
+            <code>sum</code> on booleans treats <code>True</code> as 1 and
+            <code>False</code> as 0, so the first return value is an integer count
+            0–5. The second return is the raw boolean list. Callers currently discard
+            the list with <code>_</code>.
+          </p>
+        </div>
+      </section>
+
+      <!-- 9. Landmarks -->
+      <section id="landmarks">
+        <h2>9. Hand Landmark Map</h2>
+        <p>
+          MediaPipe Hands always returns 21 landmarks in a fixed topology. Index 0 is
+          the wrist; each finger is a chain of four joints ending at the tip.
+        </p>
+        <div class="hand-diagram">
+          <div class="joint"><strong>0</strong>Wrist</div>
+          <div class="joint"><strong>1–4</strong>Thumb (CMC→tip)</div>
+          <div class="joint"><strong>5–8</strong>Index</div>
+          <div class="joint"><strong>9–12</strong>Middle</div>
+          <div class="joint"><strong>13–16</strong>Ring</div>
+          <div class="joint"><strong>17–20</strong>Pinky</div>
+        </div>
+        <p>
+          Coordinates are normalized to the image: <code>x</code> and <code>y</code>
+          are typically in <code>[0, 1]</code> relative to frame width/height;
+          <code>z</code> is relative depth (not used here).
+        </p>
+      </section>
+
+      <!-- 10. info panel -->
+      <section id="info-panel">
+        <h2>10. create_info_panel <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 67–83)</span></h2>
+        <p>
+          Builds a thin black BGR image the same width as the camera frame, with white
+          status text summarizing detected hands and finger counts. Later stacked under
+          the video with <code>np.vstack</code>.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Lines 67–69</span>
+          <pre><code>def create_info_panel(finger_info, image_width, panel_height=50):
+    # Shape must be a tuple; 3 channels so it stacks with the BGR camera frame
+    panel = np.zeros((panel_height, image_width, 3), dtype=np.uint8)</code></pre>
+          <p>
+            <code>finger_info</code> is a list of integers (finger count per hand).
+            <code>np.zeros(..., dtype=np.uint8)</code> creates a black image;
+            shape <code>(H, W, 3)</code> matches OpenCV’s BGR layout so vertical
+            stacking with the camera frame succeeds.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 71–74</span>
+          <pre><code># Create a string to store the number of hands and the number of fingers for each hand
+info_text = f"Hands: {len(finger_info)} | "
+for i, count in enumerate(finger_info):
+    info_text += f"Hand {i+1}: {count} fingers | "</code></pre>
+          <p>
+            Starts with the hand count, then appends one clause per hand using
+            1-based display numbering (<code>i+1</code>). Trailing
+            <code>" | "</code> is later stripped for drawing.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 76–78</span>
+          <pre><code># If no hands are detected, display appropriate information
+if not finger_info:
+    info_text = "No hands detected"</code></pre>
+          <p>
+            Empty list is falsy; replaces the partially built string with a clear
+            status message. (The loop above does nothing when the list is empty, so
+            without this branch the panel would show only <code>"Hands: 0 |"</code>.)
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 80–83</span>
+          <pre><code># Draw text on the panel
+cv2.putText(panel, info_text.strip(), (10, 30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
+
+return panel</code></pre>
+          <p>
+            Draws white text at pixel <code>(10, 30)</code> (x from left, y baseline
+            from top). Font scale <code>0.7</code>, thickness <code>2</code>.
+            <code>strip()</code> removes trailing whitespace / separators.
+            Returns the finished panel image.
+          </p>
+        </div>
+      </section>
+
+      <!-- 11. Setup -->
+      <section id="setup">
+        <h2>11. Camera &amp; Serial Setup <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 85–101)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Lines 85–86</span>
+          <pre><code># Create a holder for caputres video
+cap = cv2.VideoCapture(0)</code></pre>
+          <p>
+            Opens camera index <code>0</code> (default webcam). Comment has a typo
+            (“caputres”). Returns a <code>VideoCapture</code> object used for the rest
+            of the program. If the camera is busy or missing,
+            <code>cap.isOpened()</code> will be false and the loop never runs.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 88–91</span>
+          <pre><code># Detect the key points on hands
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_hands = mp.solutions.hands</code></pre>
+          <p>
+            Caches MediaPipe submodule references for shorter calls when drawing
+            landmarks and constructing the <code>Hands</code> detector.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 93–96</span>
+          <pre><code># Adjust the port to match our setup
+port = "COM4"
+# This rate is decided by the hardware
+baudrate = 115200</code></pre>
+          <p>
+            Serial configuration. <code>COM4</code> is Windows-specific; change this
+            to match Device Manager (or use <code>/dev/ttyACM0</code> etc. on Linux/macOS).
+            Baud rate <code>115200</code> must match the STEPico USB-serial settings.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 98–101</span>
+          <pre><code># Open serial in try/finally so COM4 is always released on crash, Ctrl+C, or quit
+serial_connection = None
+try:
+    serial_connection = serial.Serial(port, baudrate, timeout=1)</code></pre>
+          <p>
+            Initializes <code>serial_connection</code> to <code>None</code> so the
+            <code>finally</code> block can safely test whether a port was opened.
+            The <code>try</code> opens <code>COM4</code> at 115200 baud with
+            <code>timeout=1</code> (1-second read timeout). Write traffic in this
+            script does not rely on reads, but the timeout avoids indefinite blocking
+            if something later calls <code>read</code>. Default 8N1 framing still
+            applies (PySerial defaults).
+          </p>
+          <p>
+            If the port is wrong, missing, or already held by Thonny / another
+            <code>python.exe</code>, <code>serial.Serial</code> raises
+            <code>serial.SerialException</code>, which is caught later (see
+            <a href="#cleanup">§16</a>).
+          </p>
+        </div>
+      </section>
+
+      <!-- 12. MediaPipe context -->
+      <section id="mediapipe">
+        <h2>12. MediaPipe Hands Context <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 103–106)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Lines 103–106</span>
+          <pre><code>with mp_hands.Hands(
+    model_complexity=0,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5) as hands:</code></pre>
+          <p>
+            Nested inside the serial <code>try</code>. Context manager that constructs
+            the hand detector and guarantees <code>hands.close()</code> on exit
+            (including when <code>break</code> leaves the loop, or when an exception
+            unwinds through this block before the outer <code>except</code>/<code>finally</code>).
+          </p>
+          <table>
+            <thead>
+              <tr><th>Parameter</th><th>Value</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>model_complexity</code></td>
+                <td><code>0</code></td>
+                <td>Lightest model — fastest, slightly less accurate than 1 or 2</td>
+              </tr>
+              <tr>
+                <td><code>min_detection_confidence</code></td>
+                <td><code>0.5</code></td>
+                <td>Minimum score to accept a new hand detection</td>
+              </tr>
+              <tr>
+                <td><code>min_tracking_confidence</code></td>
+                <td><code>0.5</code></td>
+                <td>Minimum score to keep tracking a previously detected hand</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Defaults also apply: <code>max_num_hands=2</code>,
+            <code>static_image_mode=False</code> (video / tracking mode).
+          </p>
+        </div>
+      </section>
+
+      <!-- 13. Main loop -->
+      <section id="main-loop">
+        <h2>13. Main Capture Loop <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 108–139)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Lines 108–112</span>
+          <pre><code>while cap.isOpened():
+    success, image = cap.read()
+    if not success:
+        print("Ignoring empty camera frame.")
+        continue</code></pre>
+          <p>
+            Loop while the capture device remains open.
+            <code>cap.read()</code> returns <code>(ok, frame)</code>. On failure
+            (dropped frame, temporary glitch), log and skip to the next iteration
+            rather than crashing.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 114–116</span>
+          <pre><code>image.flags.writeable = False
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+results = hands.process(image)</code></pre>
+          <p>
+            Marks the array non-writeable as a MediaPipe performance hint (avoids an
+            internal copy when possible). OpenCV delivers BGR; MediaPipe expects RGB,
+            so <code>COLOR_BGR2RGB</code> converts. <code>hands.process</code> runs
+            detection/tracking and returns a result object (possibly with
+            <code>multi_hand_landmarks</code>).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 118–119</span>
+          <pre><code>image.flags.writeable = True
+image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)</code></pre>
+          <p>
+            Restores writeability for drawing, then converts back to BGR so OpenCV
+            drawing and <code>imshow</code> show correct colors.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 121–122</span>
+          <pre><code>finger_info = []
+total_fingers = 0</code></pre>
+          <p>
+            Per-frame accumulators: list of per-hand counts, and a running sum across
+            all hands.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 124–136</span>
+          <pre><code>if results.multi_hand_landmarks:
+    for hand_landmarks in results.multi_hand_landmarks:
+        mp_drawing.draw_landmarks(
+            image,
+            hand_landmarks,
+            mp_hands.HAND_CONNECTIONS,
+            mp_drawing_styles.get_default_hand_landmarks_style(),
+            mp_drawing_styles.get_default_hand_connections_style()
+        )
+
+        finger_count, _ = count_fingers(hand_landmarks)
+        finger_info.append(finger_count)
+        total_fingers += finger_count</code></pre>
+          <p>
+            If at least one hand is present, iterate each landmark set:
+          </p>
+          <ul>
+            <li><code>draw_landmarks</code> paints joints and bone connections using MediaPipe’s default styles</li>
+            <li><code>HAND_CONNECTIONS</code> is the predefined edge list for the 21-point hand graph</li>
+            <li><code>count_fingers</code> returns count + states; states are discarded</li>
+            <li>Count is appended and added to <code>total_fingers</code></li>
+          </ul>
+          <p>
+            Hand order follows MediaPipe’s detection order (not guaranteed left/right
+            unless you also inspect <code>multi_handedness</code>, which this script
+            does not).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 139</span>
+          <pre><code>print(f"Hands: {len(finger_info)} | Finger counts: {finger_info} | Total fingers: {total_fingers}")</code></pre>
+          <p>
+            Console telemetry every frame. Useful for debugging without looking at the
+            GUI panel. High frame rates will flood the terminal.
+          </p>
+        </div>
+      </section>
+
+      <!-- 14. Serial protocol -->
+      <section id="serial-protocol">
+        <h2>14. Serial Protocol <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 141–153)</span></h2>
+        <p>
+          After vision processing, the PC encodes state as one or more ASCII characters
+          for the STEPico firmware. The microcontroller pairs a hand-select digit
+          (<code>'1'</code> or <code>'2'</code>) with a following finger-count digit.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Lines 141–151</span>
+          <pre><code>if len(finger_info) != 0:
+    if len(finger_info) > 0:
+        serial_connection.write(('1' + str(finger_info[0])).encode())
+
+    if len(finger_info) > 1:
+        serial_connection.write(('2' + str(finger_info[1])).encode())
+    else:
+        serial_connection.write(('R').encode())
+
+else:
+    serial_connection.write(('L').encode())</code></pre>
+          <p>Behavior by case:</p>
+          <table>
+            <thead>
+              <tr><th>Condition</th><th>Bytes written</th><th>Intended STEPico effect</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>≥1 hand</td>
+                <td><code>'1'</code> + digit of hand 0 count (e.g. <code>b'13'</code> for 3 fingers)</td>
+                <td>Select left LED bank, then light that many LEDs</td>
+              </tr>
+              <tr>
+                <td>≥2 hands</td>
+                <td><code>'2'</code> + digit of hand 1 count</td>
+                <td>Select right LED bank, then light that many LEDs</td>
+              </tr>
+              <tr>
+                <td>Exactly 1 hand</td>
+                <td>After hand-1 update, also <code>b'R'</code></td>
+                <td>Firmware treats <code>R</code> as “turn all right LEDs on” (test / fill)</td>
+              </tr>
+              <tr>
+                <td>0 hands</td>
+                <td><code>b'L'</code></td>
+                <td>Firmware treats <code>L</code> as “turn all left LEDs on”</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note">
+            The inner check <code>if len(finger_info) > 0</code> is redundant inside
+            <code>if len(finger_info) != 0</code> — both mean the list is non-empty.
+            Also, when no hands are detected the script sends <code>L</code> (all left
+            LEDs on) rather than turning LEDs off; that matches the STEPico branch for
+            <code>'L'</code> but may surprise operators expecting a blank display.
+          </div>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Line 153</span>
+          <pre><code>serial_connection.write(('V').encode())</code></pre>
+          <p>
+            Always writes the character <code>V</code> after the hand updates.
+            The companion STEPico script shown in this chapter does <strong>not</strong>
+            handle <code>'V'</code> (no matching branch). It is effectively a no-op on
+            the firmware as currently written, or reserved for a future “valid frame /
+            heartbeat” feature.
+          </p>
+        </div>
+
+        <h3>Protocol summary (PC → STEPico)</h3>
+        <table>
+          <thead>
+            <tr><th>Character(s)</th><th>Meaning on PC side</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>1</code> then <code>0</code>–<code>5</code></td><td>Hand slot 1 count</td></tr>
+            <tr><td><code>2</code> then <code>0</code>–<code>5</code></td><td>Hand slot 2 count</td></tr>
+            <tr><td><code>R</code></td><td>Sent when only one hand is present</td></tr>
+            <tr><td><code>L</code></td><td>Sent when no hands are present</td></tr>
+            <tr><td><code>V</code></td><td>Sent every frame after other traffic</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 15. Display -->
+      <section id="display">
+        <h2>15. Display &amp; Exit <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 155–170)</span></h2>
+
+        <div class="line-block">
+          <span class="ln">Lines 155–159</span>
+          <pre><code># Get image width
+image_width = image.shape[1]
+
+# Create information panel
+info_panel = create_info_panel(finger_info, image_width)</code></pre>
+          <p>
+            OpenCV images are shaped <code>(height, width, channels)</code>, so
+            <code>shape[1]</code> is width. The panel is built to that width so
+            <code>vstack</code> does not fail on mismatched columns.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 161–162</span>
+          <pre><code># Flip the main image
+image = cv2.flip(image, 1)</code></pre>
+          <p>
+            Horizontal flip (<code>flipCode=1</code>) mirrors the frame like a selfie
+            camera. Landmark drawing happens <em>before</em> the flip, so the skeleton
+            remains aligned with the mirrored image. The info panel is <em>not</em>
+            flipped (text stays left-to-right readable).
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 164–165</span>
+          <pre><code># Vertically stack the main image and information panel
+display_image = np.vstack((image, info_panel))</code></pre>
+          <p>
+            Concatenates along the first axis: video on top, 50-px status bar below.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 167–170</span>
+          <pre><code># Display the result in a window
+cv2.imshow('MediaPipe Hands', display_image)
+if cv2.waitKey(5) &amp; 0xFF == ord('q'):
+    break</code></pre>
+          <p>
+            Shows the composite frame in a window titled
+            <code>MediaPipe Hands</code>. <code>waitKey(5)</code> waits up to 5 ms for
+            a key and also pumps the OpenCV GUI event loop (required for the window to
+            update). Masking with <code>0xFF</code> keeps the low 8 bits for
+            cross-platform key codes. Pressing <code>q</code> breaks out of the
+            <code>while</code> loop; control then leaves the <code>with Hands</code>
+            block and continues into the <code>except</code>/<code>finally</code>
+            cleanup path.
+          </p>
+        </div>
+      </section>
+
+      <!-- 16. Errors & Cleanup -->
+      <section id="cleanup">
+        <h2>16. Errors &amp; Cleanup <span style="font-weight:400;font-size:0.85rem;color:var(--muted)">(lines 172–182)</span></h2>
+        <p>
+          After the vision <code>try</code> body, dedicated handlers cover port failures
+          and Ctrl+C; a <code>finally</code> always frees the camera, serial port, and
+          OpenCV windows.
+        </p>
+
+        <div class="line-block">
+          <span class="ln">Lines 172–174</span>
+          <pre><code>except serial.SerialException as exc:
+    print(f"Serial error on {port}: {exc}")
+    print("Close Thonny/Serial Monitor, end leftover python.exe, or unplug/replug the board.")</code></pre>
+          <p>
+            Catches PySerial failures such as “Access is denied” / port not found when
+            opening or using the COM device. Prints the underlying exception and a
+            short troubleshooting hint aimed at the usual Windows conflict: another
+            app (Thonny’s serial monitor, a previous hung Python process) still holds
+            the port.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 175–176</span>
+          <pre><code>except KeyboardInterrupt:
+    print("\nInterrupted — releasing camera and serial port.")</code></pre>
+          <p>
+            Handles Ctrl+C in the terminal. Without this, an interrupt during the loop
+            would still reach <code>finally</code>, but the message makes it explicit
+            that resources are being released intentionally.
+          </p>
+        </div>
+
+        <div class="line-block">
+          <span class="ln">Lines 177–182</span>
+          <pre><code>finally:
+    if serial_connection is not None and serial_connection.is_open:
+        serial_connection.close()
+        print(f"Closed {port}.")
+    cap.release()
+    cv2.destroyAllWindows()</code></pre>
+          <p>
+            Always runs — on normal <code>q</code> quit, serial open failure, Ctrl+C,
+            or other exceptions that leave the <code>try</code>. Steps:
+          </p>
+          <ul>
+            <li>Close the serial port only if it was successfully constructed and is still open (avoids errors when open failed and <code>serial_connection</code> is still <code>None</code>)</li>
+            <li>Print confirmation that the named port was closed</li>
+            <li>Release the webcam via <code>cap.release()</code></li>
+            <li>Destroy all OpenCV windows</li>
+          </ul>
+          <p>
+            The MediaPipe <code>Hands</code> context manager closes itself before this
+            <code>finally</code> runs when the <code>with</code> block exits normally;
+            if serial open failed before entering <code>with</code>, Hands was never
+            created.
+          </p>
+        </div>
+      </section>
+
+      <!-- 17. Full line index -->
+      <section id="line-index">
+        <h2>17. Full Line Index</h2>
+        <table>
+          <thead>
+            <tr><th>Lines</th><th>Section</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1–7</td><td>Imports</td></tr>
+            <tr><td>9–11</td><td><code>calculate_distance</code></td></tr>
+            <tr><td>13–30</td><td><code>calculate_angle</code></td></tr>
+            <tr><td>32–41</td><td><code>is_finger_straight</code></td></tr>
+            <tr><td>43–48</td><td><code>is_finger_bent</code></td></tr>
+            <tr><td>50–65</td><td><code>count_fingers</code></td></tr>
+            <tr><td>67–83</td><td><code>create_info_panel</code></td></tr>
+            <tr><td>85–86</td><td>Webcam open</td></tr>
+            <tr><td>88–91</td><td>MediaPipe drawing / hands aliases</td></tr>
+            <tr><td>93–96</td><td>Serial port / baudrate constants</td></tr>
+            <tr><td>98–101</td><td><code>serial_connection = None</code>; <code>try</code>; open with <code>timeout=1</code></td></tr>
+            <tr><td>103–106</td><td><code>Hands</code> context manager</td></tr>
+            <tr><td>108–119</td><td>Frame read, color convert, inference</td></tr>
+            <tr><td>121–136</td><td>Draw landmarks &amp; count fingers</td></tr>
+            <tr><td>138–153</td><td>Terminal log &amp; serial writes</td></tr>
+            <tr><td>155–170</td><td>Info panel, flip, display, quit key</td></tr>
+            <tr><td>172–176</td><td><code>SerialException</code> / <code>KeyboardInterrupt</code> handlers</td></tr>
+            <tr><td>177–182</td><td><code>finally</code>: close serial, release camera, destroy windows</td></tr>
+            <tr><td>184</td><td>Trailing blank line (end of file)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 18. Usage -->
+      <section id="usage">
+        <h2>18. Usage Notes</h2>
+        <h3>Requirements</h3>
+        <ul>
+          <li>Python 3 with <code>opencv-python</code>, <code>mediapipe</code>, <code>numpy</code>, <code>pyserial</code></li>
+          <li>A working webcam at index 0 (or change the <code>VideoCapture</code> argument)</li>
+          <li>STEPico (or compatible board) connected on the configured COM port, running the companion firmware</li>
+          <li>COM port free — close Thonny’s serial monitor and any leftover Python processes before running</li>
+        </ul>
+
+        <h3>Run</h3>
+        <pre><code>python ch4-finger-detection-pc.py</code></pre>
+        <p>
+          Press <code>q</code> in the OpenCV window, or Ctrl+C in the terminal, to quit.
+          Either path runs <code>finally</code> so <code>COM4</code> is released.
+        </p>
+
+        <h3>Known quirks in this source</h3>
+        <ul>
+          <li><code>landmark</code> (line 4) and <code>time</code> (line 6) are unused imports</li>
+          <li>Hand 1 vs hand 2 is detection order, not guaranteed left/right handedness</li>
+          <li>No-hand state sends <code>L</code> (all left LEDs on), not “all off”</li>
+          <li>Single-hand state also sends <code>R</code> (all right LEDs on per firmware)</li>
+          <li><code>V</code> is written every frame but not handled in the current STEPico script</li>
+          <li>COM port is hard-coded to <code>COM4</code></li>
+        </ul>
+      </section>
+
+      <footer>
+        Source file: <code>ch4-finger-detection-pc.py</code> ·
+        AI with Hardware · Chapter 4 · Finger Detection (PC)
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

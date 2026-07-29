@@ -95,79 +95,89 @@ port = "COM4"
 # This rate is decided by the hardware
 baudrate = 115200
 
-# Serial connection to talk to STEPico
-serial_connection = serial.Serial(port, baudrate)
+# Open serial in try/finally so COM4 is always released on crash, Ctrl+C, or quit
+serial_connection = None
+try:
+    serial_connection = serial.Serial(port, baudrate, timeout=1)
 
-with mp_hands.Hands(
-    model_complexity=0,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5) as hands:
+    with mp_hands.Hands(
+        model_complexity=0,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5) as hands:
 
-    while cap.isOpened():
-        success, image = cap.read()
-        if not success:
-            print("Ignoring empty camera frame.")
-            continue
+        while cap.isOpened():
+            success, image = cap.read()
+            if not success:
+                print("Ignoring empty camera frame.")
+                continue
 
-        image.flags.writeable = False
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        results = hands.process(image)
+            image.flags.writeable = False
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = hands.process(image)
 
-        image.flags.writeable = True
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        finger_info = []
-        total_fingers = 0
+            finger_info = []
+            total_fingers = 0
 
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                mp_drawing.draw_landmarks(
-                    image,
-                    hand_landmarks,
-                    mp_hands.HAND_CONNECTIONS,
-                    mp_drawing_styles.get_default_hand_landmarks_style(),
-                    mp_drawing_styles.get_default_hand_connections_style()
-                )
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    mp_drawing.draw_landmarks(
+                        image,
+                        hand_landmarks,
+                        mp_hands.HAND_CONNECTIONS,
+                        mp_drawing_styles.get_default_hand_landmarks_style(),
+                        mp_drawing_styles.get_default_hand_connections_style()
+                    )
 
-                finger_count, _ = count_fingers(hand_landmarks)
-                finger_info.append(finger_count)
-                total_fingers += finger_count
+                    finger_count, _ = count_fingers(hand_landmarks)
+                    finger_info.append(finger_count)
+                    total_fingers += finger_count
 
-        # Print information in the terminal
-        print(f"Hands: {len(finger_info)} | Finger counts: {finger_info} | Total fingers: {total_fingers}")
+            # Print information in the terminal
+            print(f"Hands: {len(finger_info)} | Finger counts: {finger_info} | Total fingers: {total_fingers}")
 
-        if len(finger_info) != 0:
-            if len(finger_info) > 0:
-                serial_connection.write(('1' + str(finger_info[0])).encode())
+            if len(finger_info) != 0:
+                if len(finger_info) > 0:
+                    serial_connection.write(('1' + str(finger_info[0])).encode())
 
-            if len(finger_info) > 1:
-                serial_connection.write(('2' + str(finger_info[1])).encode())
+                if len(finger_info) > 1:
+                    serial_connection.write(('2' + str(finger_info[1])).encode())
+                else:
+                    serial_connection.write(('R').encode())
+
             else:
-                serial_connection.write(('R').encode())
-            
-        else:
-            serial_connection.write(('L').encode())
+                serial_connection.write(('L').encode())
 
-        serial_connection.write(('V').encode())
+            serial_connection.write(('V').encode())
 
-        # Get image width
-        image_width = image.shape[1]
+            # Get image width
+            image_width = image.shape[1]
 
-        # Create information panel
-        info_panel = create_info_panel(finger_info, image_width)
+            # Create information panel
+            info_panel = create_info_panel(finger_info, image_width)
 
-        # Flip the main image
-        image = cv2.flip(image, 1)
+            # Flip the main image
+            image = cv2.flip(image, 1)
 
-        # Vertically stack the main image and information panel
-        display_image = np.vstack((image, info_panel))
+            # Vertically stack the main image and information panel
+            display_image = np.vstack((image, info_panel))
 
-        # Display the result in a window
-        cv2.imshow('MediaPipe Hands', display_image)
-        if cv2.waitKey(5) & 0xFF == ord('q'):
-            break
+            # Display the result in a window
+            cv2.imshow('MediaPipe Hands', display_image)
+            if cv2.waitKey(5) & 0xFF == ord('q'):
+                break
 
-cap.release()
-serial_connection.close()
-cv2.destroyAllWindows()
+except serial.SerialException as exc:
+    print(f"Serial error on {port}: {exc}")
+    print("Close Thonny/Serial Monitor, end leftover python.exe, or unplug/replug the board.")
+except KeyboardInterrupt:
+    print("\nInterrupted — releasing camera and serial port.")
+finally:
+    if serial_connection is not None and serial_connection.is_open:
+        serial_connection.close()
+        print(f"Closed {port}.")
+    cap.release()
+    cv2.destroyAllWindows()
 
